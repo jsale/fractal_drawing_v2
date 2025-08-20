@@ -30,4 +30,4 @@ A browser-based creative tool for drawing generative art inspired by fractal mat
 ### How to Run Locally
 - Clone or download this repository to your local machine.
 - Open the index.html file in any modern web browser.
-This project was developed with assistance from Google's Gemini.
+This project was developed with assistance from Google's Gemini and OpenAI's ChatGPT5.
