@@ -1,0 +1,141 @@
+/* CSS Document */
+
+@charset "utf-8";
+/* CSS Document */ 
+
+:root {
+  --bg: #071022;
+  --panel: #111827;
+  --muted: #94a3b8;
+  --accent: #7dd3fc
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, Segoe UI, Roboto, Arial;
+  background: var(--bg);
+  color: #e6eef6
+}
+header {
+  padding: 12px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .03), transparent)
+}
+main {
+  display: flex;
+  height: calc(100% - 56px);
+  overflow: hidden
+}
+.controls {
+  width: 330px;
+  padding: 12px;
+  box-sizing: border-box;
+  background: rgba(8, 12, 18, .88)
+}
+#tabButtons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px
+}
+#tabButtons button {
+  flex: 1;
+  padding: 8px;
+  border: 0;
+  background: #202833;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px
+}
+#tabButtons button.active {
+  background: #2c3a47;
+  color: #fff;
+  font-weight: 600
+}
+.tab {
+  display: none;
+  overflow: auto;
+  max-height: calc(100vh - 160px)
+}
+.tab.active {
+  display: block
+}
+label.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--muted)
+}
+input[type=range], input[type=color], select {
+  width: 100%;
+  margin-top: 6px
+}
+.btnrow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap
+}
+button.action {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 0;
+  background: linear-gradient(180deg, var(--accent), #38bdf8);
+  color: #042;
+  cursor: pointer
+}
+button.ghost {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer
+}
+.small {
+  font-size: 12px;
+  color: var(--muted)
+}
+#canvasWrap {
+  position: relative;
+  flex: 1;
+  background: #06101e
+}
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none
+}
+#branchColorPanel {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .22s ease, transform .22s ease;
+  pointer-events: none;
+  margin-top: 10px
+}
+#branchColorPanel.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto
+}
+.colorRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0
+}
+.hint {
+  margin-top: 6px
+}
+.modeBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #203040;
+  color: #cfe7ff;
+  margin-left: 6px;
+  font-size: 12px
+}

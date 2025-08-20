@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link href="fractal_drawing.css" rel="stylesheet">
+<title>Fractal Forest — Edit Branches • Undo/Redo • Eraser</title>
+</head>
+<body>
+<header><strong>Fractal Forest</strong> — Tree - Fern modes • Click/drag to draw • Click branch to edit level <span id="modeBadge" class="modeBadge">Tree</span></header>
+<main>
+  <div class="controls">
+    <div id="tabButtons">
+      <button class="active" data-tab="shapeTab">Shape</button>
+      <button data-tab="colorTab">Color</button>
+      <button data-tab="historyTab">History</button>
+    </div>
+
+    <div id="shapeTab" class="tab active">
+      <label class="row" for="modeSelect">Mode</label>
+      <select id="modeSelect">
+        <option value="tree">Tree</option>
+        <option value="fern">Fern</option>
+        <option value="path">Path</option>
+        <option value="snowflake">Snowflake</option>
+        <option value="flower">Flower</option>
+        <option value="vine">Vine</option>
+		<option value="clouds">Clouds</option>
+        <option value="eraser">Eraser</option>
+      </select>
+
+      <div id="treeParams">
+        <label class="row" for="levels">Branch levels <span id="levelsLabel">5</span></label>
+        <input id="levels" type="range" min="1" max="10" value="5">
+        <label class="row" for="baseLen">Base length <span id="lenLabel">60</span></label>
+        <input id="baseLen" type="range" min="10" max="220" value="60">
+        <label class="row" for="angle">Branch angle (deg) <span id="angleLabel">25</span></label>
+        <input id="angle" type="range" min="0" max="60" value="25">
+        <label class="row" for="randomness">Randomness <span id="randLabel">0.20</span></label>
+        <input id="randomness" type="range" min="0" max="1" step="0.01" value="0.20">
+        <label class="row" for="baseWidth">Base width (px) <span id="widthLabel">12</span></label>
+        <input id="baseWidth" type="range" min="1" max="50" value="12">
+        <label class="row" for="widthScale">Width scale <span id="scaleLabel">0.68</span></label>
+        <input id="widthScale" type="range" min="0.5" max="1.5" step="0.01" value="0.68">
+      </div>
+
+	  <!-- Barnsley Fern Parameters -->
+      <div id="fernParams" style="margin-top:10px">
+        <label class="row" for="fernPoints">Fern points/spawn <span id="fernPointsLabel">1000</span></label>
+        <input id="fernPoints" type="range" min="100" max="20000" step="100" value="1000">
+        <label class="row" for="fernSize">Fern size (relative) <span id="fernSizeLabel">0.01</span></label>
+        <input id="fernSize" type="range" min="0.0005" max="0.2" step="0.0001" value="0.01">
+      </div>
+
+	  <!-- Path Parameters -->
+      <div id="pathParams" style="margin-top:10px; display:none;">
+        <label class="row" for="pathWidth">Path Width (px) <span id="pathWidthLabel">5</span></label>
+        <input id="pathWidth" type="range" min="1" max="100" value="5">
+      </div>
+
+	  <!-- Koch Snowflake Parameters -->
+	  <div id="snowParams" style="margin-top: 10px">
+        <label class="row" for="snowIter">Snowflake Iteration <span id="snowIterLabel">4</span></label>
+        <input id="snowIter" type="range" min="1" max="20" step="1" value="4">
+        <label class="row" for="snowSize">Snowflake Size <span id="snowSizeLabel">40</span></label>
+        <input id="snowSize" type="range" min="0.01" max="1" step="0.01" value="0.2">
+        <label class="row" for="snowStroke">Line Width <span id="snowStrokeLabel">2</span></label>
+        <input id="snowStroke" type="range" min="1" max="50" step="1" value="2">
+	  </div>
+		
+	  <!-- L-System Flower Parameters -->
+	  <div id="flowerParams" style="margin-top: 10px">
+        <label class="row" for="flowerIter">Flower Iteration <span id="flowerIterLabel">3</span></label>
+        <input id="flowerIter" type="range" min="1" max="20" step="1" value="3">
+        <label class="row" for="flowerAngle">Flower Angle <span id="flowerAngleLabel">20</span></label>
+        <input id="flowerAngle" type="range" min="1" max="90" step="1" value="60">
+        <label class="row" for="flowerStep">Flower Step <span id="flowerStepLabel">1</span></label>
+        <input id="flowerStep" type="range" min="0.01" max="1" step="0.01" value="0.01">
+        <label class="row" for="flowerStroke">Flower Stroke <span id="flowerStrokeLabel">2</span></label>
+        <input id="flowerStroke" type="range" min="1" max="10" step="1" value="2">
+	  </div>
+	
+	  <!-- Perlin Noise Vine Parameters -->
+	  <div id="vineParams" style="margin-top: 10px">
+        <label class="row" for="vineLength">Vine Length <span id="vineLengthLabel">100</span></label>
+        <input id="vineLength" type="range" min="1" max="200" step="1" value="100">
+        <label class="row" for="vineNoise">Vine Noise <span id="vineNoiseLabel">0.01</span></label>
+        <input id="vineNoise" type="range" min="0.001" max="1" step="0.001" value="0.01">
+        <label class="row" for="vineStroke">Vine Stroke <span id="vineStrokeLabel">0.1</span></label>
+        <input id="vineStroke" type="range" min="0.1" max="10" step="0.1" value="0.1">
+	  </div>
+	
+		<div id="cloudParams" style="display:none">
+		  <label for="cloudCount">Circles per stamp: <span id="cloudCountLabel">10</span></label>
+		  <input id="cloudCount" type="range" min="1" max="30" value="10">
+
+		  <label for="cloudMinD">Min diameter (px): <span id="cloudMinDLabel">20</span></label>
+		  <input id="cloudMinD" type="range" min="1" max="400" value="20">
+
+		  <label for="cloudMaxD">Max diameter (px): <span id="cloudMaxDLabel">120</span></label>
+		  <input id="cloudMaxD" type="range" min="1" max="800" value="120">
+
+		  <label for="cloudMinW">Min line width (px): <span id="cloudMinWLabel">1.0</span></label>
+		  <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="1">
+
+		  <label for="cloudMaxW">Max line width (px): <span id="cloudMaxWLabel">4.0</span></label>
+		  <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="4">
+
+		  <label for="cloudBlur">Highlight blur (px): <span id="cloudBlurLabel">8</span></label>
+		  <input id="cloudBlur" type="range" min="0" max="40" step="1" value="8">
+
+		  <label for="cloudShadowColor">Highlight color</label>
+		  <input id="cloudShadowColor" type="color" value="#555555">
+		</div>
+
+		<!-- Non-tree random scale controls -->
+		<div id="otherScaleControls" style="margin-top:10px">
+		  <label for="otherScaleMin">Non-tree random scale MIN: <span id="otherScaleMinLabel">0.80×</span></label>
+		  <input id="otherScaleMin" type="range" min="0.2" max="3" step="0.01" value="0.8">
+
+		  <label for="otherScaleMax">Non-tree random scale MAX: <span id="otherScaleMaxLabel">1.20×</span></label>
+		  <input id="otherScaleMax" type="range" min="0.2" max="3" step="0.01" value="1.2">
+		</div>
+
+		<!-- Eraser Parameters -->
+      <div id="eraserParams" style="margin-top:10px; display:none">
+        <label class="row" for="eraserSize">Eraser size (px) <span id="eraserSizeLabel">24</span></label>
+        <input id="eraserSize" type="range" min="6" max="80" value="24">
+      </div>
+
+      <div class="btnrow">
+        <button id="undoBtn" class="action" title="Ctrl/Cmd+Z">Undo</button>
+        <button id="redoBtn" class="action" title="Ctrl/Cmd+Y">Redo</button>
+		<button id="clearBtn" class="action">Clear</button>
+        <button id="saveBtn" class="action">Save PNG</button>
+		<button id="exportSvgBtn" class="action">Export SVG</button>
+		<button id="exportPngLayersBtn" class="action">Export Layers</button>
+      </div>
+      <!-- SVG export options -->
+		<div id="svgExportOptions" style="margin-top:10px">
+		  <label for="svgFernThin">SVG fern point thinning: <span id="svgFernThinLabel">1×</span></label>
+		  <input id="svgFernThin" type="range" min="1" max="8" step="1" value="1">
+
+		  <label style="display:block;margin-top:8px;">
+			<input type="checkbox" id="svgGroupByLevel">
+			Group tree segments by level
+		  </label>
+		</div>
+<div class="hint small">Tip: In Tree mode, click a branch segment to select its <em>level</em>. Edit its color/alpha in the Color tab.</div>
+		<!-- Wind / animation controls -->
+		<div id="animParams" style="margin-top:10px">
+		  <label class="row" for="animateWind">Animate wind</label>
+		  <select id="animateWind">
+			<option value="off" selected>Off</option>
+			<option value="sway">Gentle sway</option>
+		  </select>
+
+		  <label class="row" for="windAmp">Wind amplitude (deg) <span id="windAmpLabel">3</span></label>
+		  <input id="windAmp" type="range" min="0" max="15" step="0.1" value="3">
+
+		  <label class="row" for="windSpeed">Wind speed (Hz) <span id="windSpeedLabel">0.20</span></label>
+		  <input id="windSpeed" type="range" min="0" max="1" step="0.01" value="0.20">
+		</div>
+    </div>
+
+    <div id="colorTab" class="tab">
+      <div id="branchColorPanel" aria-hidden="true"></div>
+
+      <div id="fernColorPanel" style="margin-top:10px; display:none">
+        <label class="row" for="fernColor">Fern color</label>
+        <input id="fernColor" type="color" value="#58c470">
+      </div>
+
+	  <div id="pathColorPanel" style="margin-top:10px; display:none;">
+        <label for="pathColorMode">Path Color Mode</label>
+        <select id="pathColorMode">
+            <option value="single">Single Color</option>
+            <option value="cycle">Cycle Palette</option>
+        </select>
+        <div id="pathSingleColorBox" style="margin-top: 6px;">
+            <label class="row" for="pathSingleColor">Path Color</label>
+            <input id="pathSingleColor" type="color" value="#FFFFFF">
+        </div>
+      </div>
+
+      <div id="snowColorPanel" style="margin-top:10px; display:none">
+        <label class="row" for="snowColor">Snowflake color</label>
+        <input id="snowColor" type="color" value="#EEEEEE">
+      </div>
+
+		<!-- Non-tree color controls -->
+		<hr style="opacity:.2;margin:10px 0;">
+		<div id="otherColorsSection">
+		  <label for="otherColorMode">Non-tree color mode</label>
+		  <select id="otherColorMode">
+			<option value="single">Single color</option>
+			<option value="cycle">Cycle palette (random per object)</option>
+		  </select>
+
+		  <label for="otherSingleColor" id="otherSingleColorLabel">Single color</label>
+		  <input id="otherSingleColor" type="color" value="#58c470">
+
+		  <div id="otherPaletteBox" style="margin-top:8px">
+			<div style="font-size:.9em;opacity:.8;margin-bottom:6px;">
+			  Palette for non-tree modes (matches Tree branch levels)
+			</div>
+			<div id="otherPalettePickers"></div>
+		  </div>
+		</div>
+
+        <!-- New Object Alpha Controls -->
+        <hr style="opacity:.2;margin:10px 0;">
+        <div id="newObjectAlphaSection" style="margin-top:8px;">
+            <label>
+                <input type="checkbox" id="applyNewObjectAlpha">
+                Set transparency for new objects
+            </label>
+            <div id="newObjectAlphaControls" style="display:none; margin-top: 6px;">
+                <label class="row" for="newObjectAlphaSlider">Object Alpha <span id="newObjectAlphaLabel">1.00</span></label>
+                <input id="newObjectAlphaSlider" type="range" min="0" max="1" step="0.01" value="1">
+            </div>
+        </div>
+
+      <div id="levelEditBox" style="display:none; margin-top:10px">
+        <div class="small">Editing level: <strong id="editingLevelText"></strong></div>
+        <label class="row" for="levelAlpha">Level alpha <span id="levelAlphaLabel">1.00</span></label>
+        <input id="levelAlpha" type="range" min="0" max="1" step="0.01" value="1">
+      </div>
+	<!-- Apply-to-all switch -->
+	<div id="globalLevelRow" style="margin-top:8px;">
+	  <label>
+		<input type="checkbox" id="applyAllTrees">
+		Apply to all trees at this level
+	  </label>
+	</div>
+	<div id="backgroundColorPanel" style="margin-top:1em;">
+	  <label for="backgroundColor">Background Color:</label>
+	  <input type="color" id="backgroundColor" value="#000000">
+	</div>
+    </div>
+
+    <div id="historyTab" class="tab">
+      <div class="small">Undo/Redo captures: tree/fern additions, branch color/alpha edits, and eraser strokes.</div>
+      <hr style="opacity:.2;margin:10px 0;">
+      <div id="playbackControls">
+          <button id="playbackBtn" class="action">Playback</button>
+          <div style="margin-top: 6px;">
+              <label class="row" for="playbackSpeed">Playback Speed <span id="playbackSpeedLabel">Medium</span></label>
+              <input id="playbackSpeed" type="range" min="1" max="1000" value="500">
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canvasWrap">
+    <canvas id="fernCanvas"></canvas>
+    <canvas id="treeCanvas"></canvas>
+    <canvas id="eraserCanvas"></canvas>
+  </div>
+</main>
+<script src="fractal_drawing.js" type="text/javascript" ></script>
+</body>
+</html>
