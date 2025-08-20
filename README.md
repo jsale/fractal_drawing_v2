@@ -1,8 +1,7 @@
 # Fractal Drawing Program V2
 A browser-based creative tool for drawing generative art inspired by fractal mathematics and other natural patterns. This application allows users to create complex, organic-looking structures like trees, ferns, and snowflakes, and combine them with freeform paths and cloud textures.
-## [Live Demo Link Goes Here]
-- (After hosting on GitHub Pages, replace the line above with your live URL)
-- (Replace https://www.google.com/search?q=placeholder.png with a real screenshot of your application)
+## Live Demo Link
+- https://jsale.github.io/fractal_drawing_v2/
 ## Features
  This application is built with vanilla HTML, CSS, and JavaScript, using the HTML Canvas for rendering.
 ### Multiple Drawing Modes:
