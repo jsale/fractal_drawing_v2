@@ -37,6 +37,43 @@ let dragSpacing = 4;
 let backgroundColor = '#000000'; // bottom canvas
 let branchPalette = [];          // global palette used by new trees
 
+/* ===================== Color Presets ===================== */
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const a = s*Math.min(l,1-l);
+  const f = n => {
+    const k=(n+h/30)%12;
+    const col=l - a*Math.max(-1,Math.min(k-3,Math.min(9-k,1)));
+    return Math.round(255*col);
+  };
+  return '#'+[f(0),f(8),f(4)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+function generateChromaticPalette(hue) {
+    const palette = [];
+    for (let i = 0; i < 10; i++) {
+        const lightness = 15 + i * 8; // from dark to light
+        palette.push(hslToHex(hue, 85, lightness));
+    }
+    return palette;
+}
+
+const colorPresets = {
+    "Default": ["#6aa84f", "#a2c499", "#d9ead3", "#fce5cd", "#f4cccc", "#ea9999", "#e06666", "#cc0000", "#990000", "#660000"],
+    "Forest": ["#2d572c", "#3e783b", "#50994a", "#63bb5a", "#77dd6a", "#8be37c", "#a0e98f", "#b5efa2", "#caf5b5", "#dffbc8"],
+    "Sunset": ["#4c1a25", "#6f2633", "#933242", "#b73e51", "#db4a60", "#ff6b6b", "#ffa07a", "#ffcc66", "#fff2ac", "#ffffff"],
+    "Ocean": ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600", "#d6e2f0", "#f0f8ff"],
+    "Rainbow": ["#ff0000", "#ff7f00", "#ffff00", "#00ff00", "#0000ff", "#4b0082", "#8b00ff", "#ff1493", "#00ced1", "#ff6347"],
+    "Monochrome": ["#1a1a1a", "#333333", "#4d4d4d", "#666666", "#808080", "#999999", "#b3b3b3", "#cccccc", "#e6e6e6", "#ffffff"],
+    "Neon": ["#ff00ff", "#00ffff", "#00ff00", "#ffff00", "#ff0000", "#ff69b4", "#7b68ee", "#00bfff", "#32cd32", "#ffd700"],
+    "Reds": generateChromaticPalette(0),
+    "Greens": generateChromaticPalette(120),
+    "Blues": generateChromaticPalette(240),
+    "Yellows": generateChromaticPalette(60),
+    "Cyans": generateChromaticPalette(180),
+    "Magentas": generateChromaticPalette(300),
+};
+
 /* ====== Seeded RNG & Perlin noise ====== */
 function mulberry32(seed) {
   return function() {
@@ -162,10 +199,14 @@ const modeSelect= document.getElementById('modeSelect');
 
 const levelsEl  = document.getElementById('levels');
 const baseEl    = document.getElementById('baseLen');
+const lenScaleEl  = document.getElementById('lenScale');
 const angleEl   = document.getElementById('angle');
-const randEl    = document.getElementById('randomness');
+const lenRandEl = document.getElementById('lenRand');
+const angleRandEl = document.getElementById('angleRand');
+const uniformAngleRandEl = document.getElementById('uniformAngleRand');
 const baseWidthEl = document.getElementById('baseWidth');
 const widthScaleEl= document.getElementById('widthScale');
+const randomBranchColorEl = document.getElementById('randomBranchColor');
 
 const fernPointsEl = document.getElementById('fernPoints');
 const fernSizeEl   = document.getElementById('fernSize');
@@ -266,37 +307,12 @@ const otherScaleMaxEl = document.getElementById('otherScaleMax');
 const otherScaleMinLabel = document.getElementById('otherScaleMinLabel');
 const otherScaleMaxLabel = document.getElementById('otherScaleMaxLabel');
 
-/* Ensure Mode has new options */
-(function ensureModeOptions(){
-  if (!modeSelect) return;
-  const has = val => Array.from(modeSelect.options).some(o=>o.value===val);
-  if (!has('path')){
-    const opt=document.createElement('option'); opt.value='path'; opt.textContent='Path';
-    const eraserOpt = modeSelect.querySelector('option[value="eraser"]');
-    if (eraserOpt) modeSelect.insertBefore(opt, eraserOpt); else modeSelect.appendChild(opt);
-  }
-  if (!has('snowflake')){
-    const opt=document.createElement('option'); opt.value='snowflake'; opt.textContent='Snowflake'; modeSelect.appendChild(opt);
-  }
-  if (!has('flower')){
-    const opt=document.createElement('option'); opt.value='flower'; opt.textContent='Flower'; modeSelect.appendChild(opt);
-  }
-  if (!has('vine')){
-    const opt=document.createElement('option'); opt.value='vine'; opt.textContent='Vine'; modeSelect.appendChild(opt);
-  }
-  if (!has('clouds')){
-    const opt=document.createElement('option'); opt.value='clouds'; opt.textContent='Clouds'; modeSelect.appendChild(opt);
-  }
-})();
-
 /* ===================== Animation controls ===================== */
 const animateWindEl  = document.getElementById('animateWind');
 const windAmpEl      = document.getElementById('windAmp');
 const windSpeedEl    = document.getElementById('windSpeed');
 const windAmpLabel   = document.getElementById('windAmpLabel');
 const windSpeedLabel = document.getElementById('windSpeedLabel');
-
-let animReq = null;
 
 /* ===================== Sizing ===================== */
 function resizeCanvases(){
@@ -317,8 +333,10 @@ function updateUIValues(){
   const setText = (el, txt)=>{ if (el) el.textContent = txt; };
   setText(levelsLabel, levelsEl ? levelsEl.value : '');
   setText(lenLabel,    baseEl ? baseEl.value : '');
+  setText(lenScaleLabel, lenScaleEl ? Number(lenScaleEl.value).toFixed(2) : '');
   setText(angleLabel,  angleEl ? angleEl.value : '');
-  setText(randLabel,   randEl ? Number(randEl.value).toFixed(2) : '');
+  setText(lenRandLabel,   lenRandEl ? Number(lenRandEl.value).toFixed(2) : '');
+  setText(angleRandLabel,   angleRandEl ? Number(angleRandEl.value).toFixed(2) : '');
   setText(widthLabel,  baseWidthEl ? baseWidthEl.value : '');
   setText(scaleLabel,  widthScaleEl ? Number(widthScaleEl.value).toFixed(2) : '');
   setText(pathWidthLabel, pathWidthEl ? pathWidthEl.value : '');
@@ -354,11 +372,21 @@ function updateUIValues(){
   if (otherScaleMaxEl && otherScaleMaxLabel) otherScaleMaxLabel.textContent = `${Number(otherScaleMaxEl.value).toFixed(2)}×`;
 
   if (newObjectAlphaSliderEl && newObjectAlphaLabelEl) newObjectAlphaLabelEl.textContent = Number(newObjectAlphaSliderEl.value).toFixed(2);
+  
+  if (playbackSpeedEl && playbackSpeedLabel) {
+      const speed = parseInt(playbackSpeedEl.value, 10);
+      let label = 'Medium';
+      if (speed > 800) label = 'Fast';
+      else if (speed < 200) label = 'Slow';
+      playbackSpeedLabel.textContent = label;
+  }
 }
 const levelsLabel = document.getElementById('levelsLabel');
 const lenLabel    = document.getElementById('lenLabel');
+const lenScaleLabel = document.getElementById('lenScaleLabel');
 const angleLabel  = document.getElementById('angleLabel');
-const randLabel   = document.getElementById('randLabel');
+const lenRandLabel   = document.getElementById('lenRandLabel');
+const angleRandLabel   = document.getElementById('angleRandLabel');
 const widthLabel  = document.getElementById('widthLabel');
 const scaleLabel  = document.getElementById('scaleLabel');
 const pathWidthLabel = document.getElementById('pathWidthLabel');
@@ -367,13 +395,13 @@ const fernSizeLabel   = document.getElementById('fernSizeLabel');
 const eraserSizeLabel = document.getElementById('eraserSizeLabel');
 
 [
-  levelsEl,baseEl,angleEl,randEl,baseWidthEl,widthScaleEl,pathWidthEl,fernPointsEl,fernSizeEl,eraserSizeEl,
+  levelsEl,baseEl,lenScaleEl,angleEl,lenRandEl,angleRandEl,baseWidthEl,widthScaleEl,pathWidthEl,fernPointsEl,fernSizeEl,eraserSizeEl,
   windAmpEl,windSpeedEl, svgFernThinEl,
   snowIterEl,snowSizeEl,snowStrokeEl,
   flowerIterEl,flowerAngleEl,flowerStepEl,flowerStrokeEl,
   vineLengthEl,vineNoiseEl,vineStrokeEl,
   cloudCountEl,cloudMinDEl,cloudMaxDEl,cloudMinWEl,cloudMaxWEl,cloudBlurEl,
-  otherScaleMinEl, otherScaleMaxEl, newObjectAlphaSliderEl
+  otherScaleMinEl, otherScaleMaxEl, newObjectAlphaSliderEl, playbackSpeedEl
 ].filter(Boolean).forEach(el=>el.addEventListener('input',updateUIValues));
 updateUIValues();
 
@@ -436,16 +464,6 @@ if (backgroundColorEl){
 }
 
 /* ===================== Colors & palette UI (GLOBAL TREE) ===================== */
-function hslToHex(h,s,l){
-  s/=100; l/=100;
-  const a = s*Math.min(l,1-l);
-  const f = n => {
-    const k=(n+h/30)%12;
-    const col=l - a*Math.max(-1,Math.min(k-3,Math.min(9-k,1)));
-    return Math.round(255*col);
-  };
-  return '#'+[f(0),f(8),f(4)].map(v=>v.toString(16).padStart(2,'0')).join('');
-}
 function ensureTreeDefaults(levels){
   const arr = [];
   for(let i=0;i<levels;i++){
@@ -504,6 +522,59 @@ function refreshPaletteUI(){
 }
 initPaletteUI();
 
+/* ===================== Presets UI ===================== */
+function initPresetsUI() {
+    const container = document.getElementById('palettePresetsContainer');
+    if (!container) return;
+    container.innerHTML = ''; // Clear existing
+    for (const name in colorPresets) {
+        const button = document.createElement('button');
+        button.className = 'preset-btn';
+        
+        const text = document.createElement('span');
+        text.textContent = name;
+        
+        const swatches = document.createElement('div');
+        swatches.className = 'preset-swatches';
+        
+        colorPresets[name].slice(0, 5).forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.className = 'preset-swatch';
+            swatch.style.backgroundColor = color;
+            swatches.appendChild(swatch);
+        });
+        
+        button.appendChild(text);
+        button.appendChild(swatches);
+        
+        button.addEventListener('click', () => {
+            applyPalettePreset(colorPresets[name]);
+        });
+        
+        container.appendChild(button);
+    }
+}
+
+function applyPalettePreset(colors) {
+    for (let i = 0; i < MAX_LEVELS; i++) {
+        branchPalette[i] = colors[i % colors.length];
+    }
+    refreshPaletteUI();
+    const currentLevels = parseInt(levelsEl.value, 10);
+    rebuildOtherPalettePickers(currentLevels);
+    
+    // If a tree is selected, update its colors too
+    if (selectedTreeIndex !== null) {
+        const t = trees[selectedTreeIndex];
+        for (let i = 0; i < t.levels; i++) {
+            t.branchColors[i] = branchPalette[i];
+        }
+        pushHistory();
+        redrawAll();
+    }
+}
+
+
 /* ===================== Non-tree palette ===================== */
 function rebuildOtherPalettePickers(levelCount){
   if (!otherPalettePickers) return;
@@ -533,17 +604,17 @@ function rebuildOtherPalettePickers(levelCount){
 })();
 function updateOtherColorUI(){
   if (!otherColorModeEl || !otherSingleColorEl) return;
-  const mode = otherColorModeEl.value || 'single';
-  const showSingle = (mode === 'single');
-  if (otherSingleColorEl) otherSingleColorEl.style.display = showSingle ? '' : 'none';
-  if (otherSingleColorLabel) otherSingleColorLabel.style.display = showSingle ? '' : 'none';
+  const isCycleMode = otherColorModeEl.checked;
+  otherSingleColorEl.style.display = isCycleMode ? 'none' : 'block';
+  otherSingleColorLabel.style.display = isCycleMode ? 'none' : 'block';
+  otherPaletteBox.style.display = isCycleMode ? 'block' : 'none';
 }
 if (otherColorModeEl) otherColorModeEl.addEventListener('change', updateOtherColorUI);
 updateOtherColorUI();
 
 function pickNonTreeColor(seed){
-  const mode = (otherColorModeEl && otherColorModeEl.value) || 'single';
-  if (mode === 'single'){
+  const isCycleMode = otherColorModeEl && otherColorModeEl.checked;
+  if (!isCycleMode){
     return (otherSingleColorEl && otherSingleColorEl.value) || (fernColorEl && fernColorEl.value) || '#58c470';
   }
   const pal = (otherPalette && otherPalette.length) ? otherPalette : [ '#58c470' ];
@@ -573,11 +644,12 @@ function buildTreeSegments(tree){
   const rand = mulberry32(tree.rngSeed);
   tree.segments = [];
   let segIndex = -1;
+  
+  const uniformJitter = tree.uniformAngleRand ? (rand()-0.5)*(tree.angleRand||0)*0.15 : null;
 
   function pushSeg(obj){
     tree.segments.push(obj);
     return (++segIndex);
-
   }
 
   function branch(x,y,len,ang,depth,level,parentIdx){
@@ -587,9 +659,9 @@ function buildTreeSegments(tree){
     const y2 = y - len*Math.sin(ang);
     const idx = pushSeg({ level, len, baseAng: ang, parent: (parentIdx==null ? -1 : parentIdx), children: [], x1:x, y1:y, x2, y2 });
 
-    const red = 0.68 + (rand()-0.5)*(tree.randomness||0);
+    const red = (tree.lenScale ?? 0.68) + (rand()-0.5)*(tree.lenRand||0);
     const nl  = len * red;
-    const jitter = (rand()-0.5)*(tree.randomness||0)*0.15;
+    const jitter = (uniformJitter !== null) ? uniformJitter : (rand()-0.5)*(tree.angleRand||0)*0.15;
     const spread = (tree.angle||25)*Math.PI/180;
 
     const leftIdx  = branch(x2,y2,nl, ang - spread + jitter, depth-1, level+1, idx);
@@ -723,10 +795,17 @@ function drawVines(ctx, v){
 }
 
 function drawTreeFromSegments(ctx, tree){
+  const rand = mulberry32(tree.rngSeed); // Use the tree's own seed for consistent random colors
   ctx.lineCap='round'; ctx.lineJoin='round';
   for(const seg of tree.segments){
     const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(tree.widthScale ?? 0.68, seg.level));
-    const stroke = tree.branchColors[seg.level] || '#fff';
+    let stroke;
+    if (tree.randomColor) {
+        const colorIndex = Math.floor(rand() * tree.branchColors.length);
+        stroke = tree.branchColors[colorIndex];
+    } else {
+        stroke = tree.branchColors[seg.level] || '#fff';
+    }
     const la     = tree.levelAlphas[seg.level] ?? 1;
     ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
     const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
@@ -794,7 +873,8 @@ function redrawAll(){
 }
 
 /* ===================== Wind animation ===================== */
-function isAnimating(){ return animateWindEl && animateWindEl.value === 'sway'; }
+let animReq = null;
+function isAnimating(){ return animateWindEl && animateWindEl.checked; }
 function startAnimation(){
   if (animReq) return;
   const tick = (now)=>{ redrawAnimatedScene(now/1000); animReq = requestAnimationFrame(tick); };
@@ -804,13 +884,12 @@ function stopAnimation(){
   if (animReq){ cancelAnimationFrame(animReq); animReq = null; }
   redrawAll();
 }
-if (animateWindEl) animateWindEl.addEventListener('change', ()=>{ isAnimating() ? startAnimation() : stopAnimation(); });
-[windAmpEl, windSpeedEl].filter(Boolean).forEach(el=> el.addEventListener('input', ()=> { if (isAnimating() && !animReq) startAnimation(); }) );
 
 function drawAnimatedTree(ctx, tree, time) {
     const amp   = windAmpEl ? (parseFloat(windAmpEl.value) * Math.PI/180) : 0;
     const speed = windSpeedEl ? parseFloat(windSpeedEl.value) : 0.2;
     const phase = (tree.rngSeed % 1000) / 1000 * Math.PI * 2;
+    const rand = mulberry32(tree.rngSeed);
 
     const swayForLevel = new Map();
     for (let lvl=0; lvl<tree.levels; lvl++){
@@ -823,7 +902,16 @@ function drawAnimatedTree(ctx, tree, time) {
       const ang = seg.baseAng + (swayForLevel.get(seg.level) || 0);
       const ex = sx + seg.len*Math.cos(ang), ey = sy - seg.len*Math.sin(ang);
       const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(tree.widthScale ?? 0.68, seg.level));
-      const stroke = tree.branchColors[seg.level] || '#fff', la = tree.levelAlphas[seg.level] ?? 1;
+      
+      let stroke;
+      if (tree.randomColor) {
+          const colorIndex = Math.floor(rand() * tree.branchColors.length);
+          stroke = tree.branchColors[colorIndex];
+      } else {
+          stroke = tree.branchColors[seg.level] || '#fff';
+      }
+      
+      const la = tree.levelAlphas[seg.level] ?? 1;
       ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
       const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
       if (isHighlighted){
@@ -874,9 +962,15 @@ function getNonTreeScale(){
 
 function createTreeFromUI(x,y){
   const levels = parseInt(levelsEl.value, 10);
-  const t = { x,y, baseLen: parseFloat(baseEl.value), levels, angle: parseFloat(angleEl.value), randomness: parseFloat(randEl.value),
+  const t = { x,y, baseLen: parseFloat(baseEl.value), levels, 
+    lenScale: parseFloat(lenScaleEl.value),
+    angle: parseFloat(angleEl.value), 
+    lenRand: parseFloat(lenRandEl.value),
+    angleRand: parseFloat(angleRandEl.value),
+    uniformAngleRand: uniformAngleRandEl.checked,
     baseWidth: parseFloat(baseWidthEl.value), widthScale: parseFloat(widthScaleEl.value),
     branchColors: branchPalette.slice(0, levels), levelAlphas: new Array(levels).fill(getNewObjectAlpha()),
+    randomColor: randomBranchColorEl.checked,
     rngSeed: newSeed(), segments: [] };
   buildTreeSegments(t);
   return t;
@@ -1037,6 +1131,7 @@ function spawnAt(p){
     ferns.push(f);
     newOp = {type: 'fern', data: f};
   } else if(mode==='snowflake'){
+
     const s = createSnowflakeFromUI(p.x, p.y); s.rngSeed = nextStampSeed(); s.size *= getNonTreeScale(); s.color = pickNonTreeColor(s.rngSeed); snowflakes.push(s);
     newOp = {type: 'snowflake', data: s};
   } else if(mode==='flower'){
@@ -1077,7 +1172,8 @@ if (levelAlphaEl){
 /* ===================== Buttons ===================== */
 const undoBtn = document.getElementById('undoBtn'); const redoBtn = document.getElementById('redoBtn'); const clearBtn= document.getElementById('clearBtn');
 const saveBtn = document.getElementById('saveBtn'); const exportSvgBtn = document.getElementById('exportSvgBtn'); const exportPngLayersBtn = document.getElementById('exportPngLayersBtn');
-if (undoBtn) undoBtn.addEventListener('click', undo); if (redoBtn) redoBtn.addEventListener('click', redo);
+if (undoBtn) undoBtn.addEventListener('click', undo);
+if (redoBtn) redoBtn.addEventListener('click', redo);
 if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); });
 if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); octx.fillStyle = backgroundColor; octx.fillRect(0,0,out.width,out.height); redrawAll(); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download='fractal-forest.png'; link.href = out.toDataURL('image/png'); link.click(); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
@@ -1104,6 +1200,7 @@ function playHistory() {
     restoreFrom({ bg: backgroundColor, palette: branchPalette, scene: [] });
     setTimeout(nextFrame, 500);
 }
+
 
 /* ===================== EXPORTS (SVG & PNG layers) ===================== */
 function download(filename, text) { const a = document.createElement('a'); const blob = new Blob([text], {type: 'image/svg+xml'}); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000); }
@@ -1137,9 +1234,15 @@ window.addEventListener('keydown', (e)=>{
 (function init(){
   if (branchPalette.length !== MAX_LEVELS) branchPalette = ensureTreeDefaults(MAX_LEVELS);
   initPaletteUI();
+  initPresetsUI();
   const initialLevels = parseInt(levelsEl ? levelsEl.value : 5, 10);
   if (otherPalettePickers) rebuildOtherPalettePickers(initialLevels);
   if (backgroundColorEl && backgroundColorEl.value) { backgroundColor = backgroundColorEl.value; applyBackgroundColor(); }
+  
+  // Attach animation listeners after all functions are defined
+  if (animateWindEl) animateWindEl.addEventListener('change', ()=>{ isAnimating() ? startAnimation() : stopAnimation(); });
+  [windAmpEl, windSpeedEl].filter(Boolean).forEach(el=> el.addEventListener('input', ()=> { if (isAnimating() && !animReq) startAnimation(); }) );
+
   history.length=0; histIndex=-1; pushHistory();
   if (isAnimating()) startAnimation();
 })();

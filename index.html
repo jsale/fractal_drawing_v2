@@ -13,6 +13,7 @@
     <div id="tabButtons">
       <button class="active" data-tab="shapeTab">Shape</button>
       <button data-tab="colorTab">Color</button>
+      <button data-tab="presetsTab">Presets</button>
       <button data-tab="historyTab">History</button>
     </div>
 
@@ -34,10 +35,18 @@
         <input id="levels" type="range" min="1" max="10" value="5">
         <label class="row" for="baseLen">Base length <span id="lenLabel">60</span></label>
         <input id="baseLen" type="range" min="10" max="220" value="60">
+        <label class="row" for="lenScale">Length scale <span id="lenScaleLabel">0.68</span></label>
+        <input id="lenScale" type="range" min="0.5" max="1.0" step="0.01" value="0.68">
         <label class="row" for="angle">Branch angle (deg) <span id="angleLabel">25</span></label>
         <input id="angle" type="range" min="0" max="60" value="25">
-        <label class="row" for="randomness">Randomness <span id="randLabel">0.20</span></label>
-        <input id="randomness" type="range" min="0" max="1" step="0.01" value="0.20">
+        <label class="row" for="lenRand">Length Randomness <span id="lenRandLabel">0.20</span></label>
+        <input id="lenRand" type="range" min="0" max="1" step="0.01" value="0.20">
+        <label class="row" for="angleRand">Angle Randomness <span id="angleRandLabel">0.20</span></label>
+        <input id="angleRand" type="range" min="0" max="1" step="0.01" value="0.20">
+        <label style="display:block;margin-top:8px;font-size:12px;color:var(--muted);">
+            <input type="checkbox" id="uniformAngleRand">
+            Apply uniformly to all branches
+        </label>
         <label class="row" for="baseWidth">Base width (px) <span id="widthLabel">12</span></label>
         <input id="baseWidth" type="range" min="1" max="50" value="12">
         <label class="row" for="widthScale">Width scale <span id="scaleLabel">0.68</span></label>
@@ -90,22 +99,21 @@
         <input id="vineStroke" type="range" min="0.1" max="10" step="0.1" value="0.1">
 	  </div>
 	
-		<!-- Cloud Parameters -->
 		<div id="cloudParams" style="display:none">
-		  <label for="cloudCount">Circles per stamp: <span id="cloudCountLabel">5</span></label>
-		  <input id="cloudCount" type="range" min="1" max="30" value="5">
+		  <label for="cloudCount">Circles per stamp: <span id="cloudCountLabel">10</span></label>
+		  <input id="cloudCount" type="range" min="1" max="30" value="10">
 
-		  <label for="cloudMinD">Min diameter (px): <span id="cloudMinDLabel">16</span></label>
-		  <input id="cloudMinD" type="range" min="1" max="400" value="16">
+		  <label for="cloudMinD">Min diameter (px): <span id="cloudMinDLabel">20</span></label>
+		  <input id="cloudMinD" type="range" min="1" max="400" value="20">
 
-		  <label for="cloudMaxD">Max diameter (px): <span id="cloudMaxDLabel">19</span></label>
-		  <input id="cloudMaxD" type="range" min="1" max="800" value="19">
+		  <label for="cloudMaxD">Max diameter (px): <span id="cloudMaxDLabel">120</span></label>
+		  <input id="cloudMaxD" type="range" min="1" max="800" value="120">
 
-		  <label for="cloudMinW">Min line width (px): <span id="cloudMinWLabel">15</span></label> 
-		  <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="15">
+		  <label for="cloudMinW">Min line width (px): <span id="cloudMinWLabel">1.0</span></label>
+		  <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="1">
 
-		  <label for="cloudMaxW">Max line width (px): <span id="cloudMaxWLabel">25.0</span></label>
-		  <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="25">
+		  <label for="cloudMaxW">Max line width (px): <span id="cloudMaxWLabel">4.0</span></label>
+		  <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="4">
 
 		  <label for="cloudBlur">Highlight blur (px): <span id="cloudBlurLabel">8</span></label>
 		  <input id="cloudBlur" type="range" min="0" max="40" step="1" value="8">
@@ -150,12 +158,9 @@
 <div class="hint small">Tip: In Tree mode, click a branch segment to select its <em>level</em>. Edit its color/alpha in the Color tab.</div>
 		<!-- Wind / animation controls -->
 		<div id="animParams" style="margin-top:10px">
-		  <label class="row" for="animateWind">Animate wind</label>
-		  <select id="animateWind">
-			<option value="off" selected>Off</option>
-			<option value="sway">Gentle sway</option>
-		  </select>
-
+          <label style="display: block;">
+              <input type="checkbox" id="animateWind"> Animate wind (Gentle sway)
+          </label>
 		  <label class="row" for="windAmp">Wind amplitude (deg) <span id="windAmpLabel">3</span></label>
 		  <input id="windAmp" type="range" min="0" max="15" step="0.1" value="3">
 
@@ -166,6 +171,9 @@
 
     <div id="colorTab" class="tab">
       <div id="branchColorPanel" aria-hidden="true"></div>
+      <label style="margin-top: 8px; display: block;">
+          <input type="checkbox" id="randomBranchColor"> Random Branch Color
+      </label>
 
       <div id="fernColorPanel" style="margin-top:10px; display:none">
         <label class="row" for="fernColor">Fern color</label>
@@ -192,14 +200,11 @@
 		<!-- Non-tree color controls -->
 		<hr style="opacity:.2;margin:10px 0;">
 		<div id="otherColorsSection">
-		  <label for="otherColorMode">Non-tree color mode</label>
-		  <select id="otherColorMode">
-			<option value="single">Single color</option>
-			<option value="cycle">Cycle palette (random per object)</option>
-		  </select>
-
+          <label style="display: block;">
+              <input type="checkbox" id="otherColorMode"> Cycle Palette (random per object)
+          </label>
 		  <label for="otherSingleColor" id="otherSingleColorLabel">Single color</label>
-		  <input id="otherSingleColor" type="color" value="#FFFFFF">
+		  <input id="otherSingleColor" type="color" value="#58c470">
 
 		  <div id="otherPaletteBox" style="margin-top:8px">
 			<div style="font-size:.9em;opacity:.8;margin-bottom:6px;">
@@ -238,6 +243,14 @@
 	  <label for="backgroundColor">Background Color:</label>
 	  <input type="color" id="backgroundColor" value="#000000">
 	</div>
+    </div>
+
+    <div id="presetsTab" class="tab">
+        <div class="small">Select a predefined color palette. This will update the colors in the "Color" tab.</div>
+        <hr style="opacity:.2;margin:10px 0;">
+        <div id="palettePresetsContainer">
+            <!-- Preset buttons will be generated here by JavaScript -->
+        </div>
     </div>
 
     <div id="historyTab" class="tab">
