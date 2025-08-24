@@ -251,7 +251,7 @@ function drawVines(ctx, v){
 }
 
 function drawTreeFromSegments(ctx, tree){
-  const rand = mulberry32(tree.rngSeed); // Use the tree's own seed for consistent random colors
+  const rand = mulberry32(tree.rngSeed);
   ctx.lineCap='round'; ctx.lineJoin='round';
   for(const seg of tree.segments){
     const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(tree.widthScale ?? 0.68, seg.level));
@@ -262,7 +262,7 @@ function drawTreeFromSegments(ctx, tree){
     } else {
         stroke = tree.branchColors[seg.level] || '#fff';
     }
-    const la     = tree.levelAlphas[seg.level] ?? 1;
+    const la = tree.levelAlphas[seg.level] ?? 1;
     ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
     const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
     if(isHighlighted){
@@ -270,6 +270,15 @@ function drawTreeFromSegments(ctx, tree){
       ctx.beginPath(); ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); ctx.stroke(); ctx.restore();
     } else {
       ctx.beginPath(); ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); ctx.stroke();
+    }
+    
+    // **NEW** Use the tree's saved blossom properties
+    if (tree.hasBlossoms && seg.children.length === 0) {
+        ctx.fillStyle = tree.blossomColor || '#ffc0cb';
+        ctx.globalAlpha = la;
+        ctx.beginPath();
+        ctx.arc(seg.x2, seg.y2, tree.blossomSize || 3, 0, Math.PI * 2);
+        ctx.fill();
     }
   }
 }
@@ -288,7 +297,6 @@ function drawFernInstance(ctx, f){
   }
 }
 
-/* ===================== Eraser ===================== */
 function applyEraser(ctx, stroke){
   ctx.save(); ctx.globalCompositeOperation = 'destination-out';
   ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = stroke.size;
@@ -301,7 +309,6 @@ function applyEraser(ctx, stroke){
   ctx.restore();
 }
 
-/* ===================== Animated Drawing ===================== */
 function drawAnimatedTree(ctx, tree, time) {
     const amp   = windAmpEl ? (parseFloat(windAmpEl.value) * Math.PI/180) : 0;
     const speed = windSpeedEl ? parseFloat(windSpeedEl.value) : 0.2;
@@ -337,6 +344,16 @@ function drawAnimatedTree(ctx, tree, time) {
       } else {
         ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
       }
+      
+      // **NEW** Use the tree's saved blossom properties in the animation loop
+      if (tree.hasBlossoms && seg.children.length === 0) {
+        ctx.fillStyle = tree.blossomColor || '#ffc0cb';
+        ctx.globalAlpha = la;
+        ctx.beginPath();
+        ctx.arc(ex, ey, tree.blossomSize || 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       for (const ci of seg.children){ drawRec(tree.segments[ci], ex, ey); }
     }
     for (const root of roots){ drawRec(root, tree.x, tree.y); }

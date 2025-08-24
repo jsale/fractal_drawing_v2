@@ -11,9 +11,7 @@ const eraserCtx = eraserCanvas.getContext('2d');
 
 /* ===================== STATE ===================== */
 const MAX_LEVELS = 10;
-
 let scene = [];
-
 let trees = [];
 let ferns = [];
 let paths = [];
@@ -22,15 +20,10 @@ let flowers = [];
 let vines = [];
 let clouds = [];
 let eraserStrokes = [];
-
 let selectedTreeIndex = null;
 let selectedLevelIndex = null;
-
 let drawing = false, lastP = null, currentStroke = null, captureEl = null;
-
 let dragSpacing = 4;
-
-let backgroundColor = '#000000';
 let branchPalette = [];
 
 /* ==== History ==== */
@@ -42,7 +35,9 @@ function snapshot(){
         return { type: op.type, data: dataCopy };
     });
     return {
-        bg: backgroundColor,
+        bg1: backgroundColorEl.value,
+        bg2: backgroundColor2El.value,
+        gradient: enableGradientEl.checked,
         palette: branchPalette.slice(),
         scene: sceneCopy
     };
@@ -53,8 +48,11 @@ function pushHistory(){
   histIndex = history.length-1;
 }
 function restoreFrom(state){
-  backgroundColor = state.bg || '#000000';
-  applyBackgroundColor();
+  backgroundColorEl.value = state.bg1 || '#000000';
+  backgroundColor2El.value = state.bg2 || '#071022';
+  enableGradientEl.checked = state.gradient || false;
+  
+  if(gradientControlsEl) gradientControlsEl.style.display = enableGradientEl.checked ? 'block' : 'none';
 
   branchPalette = (state.palette && state.palette.length===MAX_LEVELS)
     ? state.palette.slice() : ensureTreeDefaults(MAX_LEVELS);
@@ -85,11 +83,25 @@ function resizeCanvases(){
     c.width = w; c.height = h;
     c.style.width = w+'px'; c.style.height = h+'px';
   });
-  applyBackgroundColor();
   if (!isAnimating()) redrawAll();
 }
 window.addEventListener('resize', resizeCanvases);
-resizeCanvases();
+
+function drawBackground(ctx) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    if (enableGradientEl && enableGradientEl.checked) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+        gradient.addColorStop(0, backgroundColorEl.value);
+        gradient.addColorStop(1, backgroundColor2El.value);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        fernCanvas.style.backgroundColor = ''; // Clear direct style to not interfere
+    } else {
+        ctx.fillStyle = backgroundColorEl.value;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        fernCanvas.style.backgroundColor = backgroundColorEl.value;
+    }
+}
 
 /* ===================== Get new object alpha ===================== */
 function getNewObjectAlpha() {
@@ -101,7 +113,7 @@ function getNewObjectAlpha() {
 
 /* ===================== Global redraw ===================== */
 function redrawAll(){
-    fernCtx.clearRect(0,0,fernCanvas.width,fernCanvas.height);
+    drawBackground(fernCtx);
     treeCtx.clearRect(0,0,treeCanvas.width,treeCanvas.height);
 
     for (const op of scene) {
@@ -137,7 +149,7 @@ function stopAnimation(){
 }
 
 function redrawAnimatedScene(time) {
-    fernCtx.clearRect(0,0,fernCanvas.width,fernCanvas.height);
+    drawBackground(fernCtx);
     treeCtx.clearRect(0,0,treeCanvas.width,treeCanvas.height);
 
     for (const op of scene) {
@@ -172,19 +184,31 @@ function getNonTreeScale(){
 
 function createTreeFromUI(x,y){
   const levels = parseInt(levelsEl.value, 10);
-  const t = { x,y, baseLen: parseFloat(baseEl.value), levels, 
+  const t = { 
+    x, y, 
+    baseLen: parseFloat(baseEl.value), 
+    levels, 
     lenScale: parseFloat(lenScaleEl.value),
     angle: parseFloat(angleEl.value), 
     lenRand: parseFloat(lenRandEl.value),
     angleRand: parseFloat(angleRandEl.value),
     uniformAngleRand: uniformAngleRandEl.checked,
-    baseWidth: parseFloat(baseWidthEl.value), widthScale: parseFloat(widthScaleEl.value),
-    branchColors: branchPalette.slice(0, levels), levelAlphas: new Array(levels).fill(getNewObjectAlpha()),
+    baseWidth: parseFloat(baseWidthEl.value), 
+    widthScale: parseFloat(widthScaleEl.value),
+    branchColors: branchPalette.slice(0, levels), 
+    levelAlphas: new Array(levels).fill(getNewObjectAlpha()),
     randomColor: randomBranchColorEl.checked,
-    rngSeed: newSeed(), segments: [] };
+    rngSeed: newSeed(), 
+    segments: [],
+    // **NEW** Store blossom properties with the tree
+    hasBlossoms: addBlossomsEl.checked,
+    blossomSize: parseFloat(blossomSizeEl.value),
+    blossomColor: blossomColorEl.value
+  };
   buildTreeSegments(t);
   return t;
 }
+
 function createSnowflakeFromUI(cx, cy){
   const s = { cx, cy, size: Math.min(treeCanvas.width, treeCanvas.height) * parseFloat(snowSizeEl.value), iter: parseInt(snowIterEl.value, 10),
     stroke: parseFloat(snowStrokeEl.value), segments: [], alpha: getNewObjectAlpha() };
@@ -373,7 +397,7 @@ const sessionFileInput = document.getElementById('sessionFileInput');
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
 if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); });
-if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); octx.fillStyle = backgroundColor; octx.fillRect(0,0,out.width,out.height); redrawAll(); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download='fractal-forest.png'; link.href = out.toDataURL('image/png'); link.click(); });
+if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); redrawAll(); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download='fractal-forest.png'; link.href = out.toDataURL('image/png'); link.click(); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
 if (loadSessionBtn) loadSessionBtn.addEventListener('click', () => sessionFileInput.click());
@@ -397,7 +421,7 @@ function playHistory() {
         setTimeout(nextFrame, delay);
     }
     
-    restoreFrom({ bg: backgroundColor, palette: branchPalette, scene: [] });
+    restoreFrom({ bg1: '#000000', bg2: '#071022', gradient: false, palette: branchPalette, scene: [] });
     setTimeout(nextFrame, 500);
 }
 
@@ -445,7 +469,13 @@ function download(filename, text) { const a = document.createElement('a'); const
 function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 function buildSVG(){
   const w = treeCanvas.width, h = treeCanvas.height; const thinStep = Math.max(1, parseInt(svgFernThinEl.value, 10));
-  const parts = []; parts.push(`<?xml version="1.0" encoding="UTF-8"?>`); parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`); parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${escapeAttr(backgroundColor)}"/>`);
+  const parts = []; parts.push(`<?xml version="1.0" encoding="UTF-8"?>`); parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`); 
+  if (enableGradientEl.checked) {
+    parts.push(`<defs><linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:${escapeAttr(backgroundColorEl.value)};" /><stop offset="100%" style="stop-color:${escapeAttr(backgroundColor2El.value)};" /></linearGradient></defs>`);
+    parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="url(#bg-grad)"/>`);
+  } else {
+    parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${escapeAttr(backgroundColorEl.value)}"/>`);
+  }
   parts.push(`<g id="ferns">`); for (const f of ferns){ parts.push(`<g fill="${escapeAttr(f.color || '#58c470')}" fill-opacity="${f.alpha ?? 1}" shape-rendering="crispEdges">`); const rand = mulberry32(f.rngSeed); let x=0,y=0; for(let i=0;i<f.points;i++){ const r = rand(); let nx, ny; if (r<0.01){ nx=0; ny=0.16*y; } else if (r<0.86){ nx=0.85*x + 0.04*y; ny=-0.04*x + 0.85*y + 1.6; } else if (r<0.93){ nx=0.2*x - 0.26*y; ny=0.23*x + 0.22*y + 1.6; } else { nx=-0.15*x + 0.28*y; ny=0.26*x + 0.24*y + 0.44; } x=nx; y=ny; if (i % thinStep !== 0) continue; const px = Math.round(f.cx + x*f.size), py = Math.round(f.cy - y*f.size); parts.push(`<rect x="${px}" y="${py}" width="1" height="1"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
   parts.push(`<g id="paths" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for(const p of paths){ if(p.colorMode === 'single'){ parts.push(`<polyline points="${p.points.map(pt=>`${pt.x},${pt.y}`).join(' ')}" stroke="${escapeAttr(p.singleColor)}" stroke-width="${p.strokeWidth}" stroke-opacity="${p.alpha ?? 1}"/>`); } else { if(!branchPalette || branchPalette.length === 0) continue; parts.push(`<g stroke-width="${p.strokeWidth}" stroke-opacity="${p.alpha ?? 1}">`); for(let i=0; i<p.points.length-1; i++){ parts.push(`<line x1="${p.points[i].x}" y1="${p.points[i].y}" x2="${p.points[i+1].x}" y2="${p.points[i+1].y}" stroke="${escapeAttr(branchPalette[i % branchPalette.length])}"/>`); } parts.push(`</g>`); } } parts.push(`</g>`);
   parts.push(`<g id="snowflakes" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const s of snowflakes){ parts.push(`<g class="snowflake" opacity="${s.alpha ?? 1}" stroke="${escapeAttr(s.color || '#a0d8ff')}" stroke-width="${s.stroke || 1.5}">`); for (const seg of s.segments){ parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
@@ -457,9 +487,9 @@ function buildSVG(){
 }
 if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> download('fractal-forest.svg', buildSVG()) );
 function saveCanvasToFile(canvas, name){ const link = document.createElement('a'); link.download = name; link.href = canvas.toDataURL('image/png'); link.click(); }
-function makeSolidBackgroundCanvas(color){ const c = document.createElement('canvas'); c.width = treeCanvas.width; c.height = treeCanvas.height; const cx = c.getContext('2d'); cx.fillStyle = color; cx.fillRect(0,0,c.width,c.height); return c; }
-function makeCombinedCanvas(){ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); octx.fillStyle = backgroundColor; octx.fillRect(0,0,out.width,out.height); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); return out; }
-if (exportPngLayersBtn) exportPngLayersBtn.addEventListener('click', ()=>{ saveCanvasToFile(makeSolidBackgroundCanvas(backgroundColor), 'background.png'); saveCanvasToFile(fernCanvas, 'ferns.png'); saveCanvasToFile(treeCanvas, 'strokes.png'); saveCanvasToFile(makeCombinedCanvas(), 'combined.png'); });
+function makeSolidBackgroundCanvas(color){ const c = document.createElement('canvas'); c.width = treeCanvas.width; c.height = treeCanvas.height; const cx = c.getContext('2d'); drawBackground(cx); return c; }
+function makeCombinedCanvas(){ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); return out; }
+if (exportPngLayersBtn) exportPngLayersBtn.addEventListener('click', ()=>{ saveCanvasToFile(makeSolidBackgroundCanvas(backgroundColorEl.value), 'background.png'); saveCanvasToFile(fernCanvas, 'ferns.png'); saveCanvasToFile(treeCanvas, 'strokes.png'); saveCanvasToFile(makeCombinedCanvas(), 'combined.png'); });
 
 /* ===================== Keyboard shortcuts ===================== */
 window.addEventListener('keydown', (e)=>{
@@ -472,11 +502,7 @@ window.addEventListener('keydown', (e)=>{
   initPaletteUI();
   initPresetsUI();
   updateNonTreeColorUI();
-
-  if (backgroundColorEl && backgroundColorEl.value) { 
-    backgroundColor = backgroundColorEl.value; 
-    applyBackgroundColor(); 
-  }
+  resizeCanvases();
   
   if (animateWindEl) animateWindEl.addEventListener('change', ()=>{ isAnimating() ? startAnimation() : stopAnimation(); });
   [windAmpEl, windSpeedEl].filter(Boolean).forEach(el=> el.addEventListener('input', ()=> { if (isAnimating() && !animReq) startAnimation(); }) );

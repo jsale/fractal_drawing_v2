@@ -16,6 +16,13 @@ const baseWidthEl = document.getElementById('baseWidth');
 const widthScaleEl= document.getElementById('widthScale');
 const randomBranchColorEl = document.getElementById('randomBranchColor');
 
+// Blossom Controls
+const addBlossomsEl = document.getElementById('addBlossoms');
+const blossomControlsEl = document.getElementById('blossomControls');
+const blossomSizeEl = document.getElementById('blossomSize');
+const blossomSizeLabel = document.getElementById('blossomSizeLabel');
+const blossomColorEl = document.getElementById('blossomColor');
+
 const fernPointsEl = document.getElementById('fernPoints');
 const fernSizeEl   = document.getElementById('fernSize');
 
@@ -30,6 +37,11 @@ const applyAllEl = document.getElementById('applyAllTrees');
 
 const branchPanel    = document.getElementById('branchColorPanel');
 const backgroundColorEl = document.getElementById('backgroundColor');
+
+// Background Gradient Controls
+const enableGradientEl = document.getElementById('enableGradient');
+const gradientControlsEl = document.getElementById('gradientControls');
+const backgroundColor2El = document.getElementById('backgroundColor2');
 
 const applyNewObjectAlphaEl = document.getElementById('applyNewObjectAlpha');
 const newObjectAlphaControlsEl = document.getElementById('newObjectAlphaControls');
@@ -121,6 +133,7 @@ function updateUIValues(){
   setText(angleRandLabel,   angleRandEl ? Number(angleRandEl.value).toFixed(2) : '');
   setText(widthLabel,  baseWidthEl ? baseWidthEl.value : '');
   setText(scaleLabel,  widthScaleEl ? Number(widthScaleEl.value).toFixed(2) : '');
+  setText(blossomSizeLabel, blossomSizeEl ? blossomSizeEl.value : '');
   setText(pathWidthLabel, pathWidthEl ? pathWidthEl.value : '');
   setText(fernPointsLabel, fernPointsEl ? fernPointsEl.value : '');
   setText(fernSizeLabel,   fernSizeEl ? Number(fernSizeEl.value).toFixed(2) : '');
@@ -178,6 +191,7 @@ const eraserSizeLabel = document.getElementById('eraserSizeLabel');
 
 [
   levelsEl,baseEl,lenScaleEl,angleEl,lenRandEl,angleRandEl,baseWidthEl,widthScaleEl,pathWidthEl,fernPointsEl,fernSizeEl,eraserSizeEl,
+  blossomSizeEl,
   windAmpEl,windSpeedEl, svgFernThinEl,
   snowIterEl,snowSizeEl,snowStrokeEl,
   flowerIterEl,flowerAngleEl,flowerStepEl,flowerStrokeEl,
@@ -205,27 +219,31 @@ function updateModeUI(){
 if (modeSelect) modeSelect.addEventListener('change', updateModeUI);
 updateModeUI();
 
+if (addBlossomsEl) {
+    addBlossomsEl.addEventListener('change', () => {
+        if(blossomControlsEl) blossomControlsEl.style.display = addBlossomsEl.checked ? 'block' : 'none';
+    });
+}
+
+if (enableGradientEl) {
+    enableGradientEl.addEventListener('change', () => {
+        if(gradientControlsEl) gradientControlsEl.style.display = enableGradientEl.checked ? 'block' : 'none';
+        if (!isAnimating()) redrawAll();
+    });
+}
+[backgroundColorEl, backgroundColor2El].filter(Boolean).forEach(el => {
+    el.addEventListener('input', () => {
+        if (!isAnimating()) redrawAll();
+    });
+});
+
+
 if (applyNewObjectAlphaEl) {
     applyNewObjectAlphaEl.addEventListener('change', () => {
         if(newObjectAlphaControlsEl) {
             newObjectAlphaControlsEl.style.display = applyNewObjectAlphaEl.checked ? 'block' : 'none';
         }
     });
-}
-
-function applyBackgroundColor(){
-  if (fernCanvas) fernCanvas.style.backgroundColor  = backgroundColor;
-  if (treeCanvas) treeCanvas.style.backgroundColor  = 'transparent';
-  if (eraserCanvas) eraserCanvas.style.backgroundColor= 'transparent';
-}
-if (backgroundColorEl){
-  backgroundColor = backgroundColorEl.value || backgroundColor;
-  applyBackgroundColor();
-  backgroundColorEl.addEventListener('input', ()=>{
-    backgroundColor = backgroundColorEl.value || '#000000';
-    applyBackgroundColor();
-    pushHistory();
-  });
 }
 
 function ensureTreeDefaults(levels){
@@ -288,10 +306,12 @@ function refreshPaletteUI(){
 function initPresetsUI() {
     const container = document.getElementById('palettePresetsContainer');
     if (!container) return;
-    container.innerHTML = ''; // Clear existing
+    container.innerHTML = '';
     for (const name in colorPresets) {
-        const button = document.createElement('button');
-        button.className = 'preset-btn';
+        const presetDiv = document.createElement('div');
+        presetDiv.className = 'preset-btn';
+        presetDiv.setAttribute('role', 'button');
+        presetDiv.setAttribute('tabindex', '0');
         
         const text = document.createElement('span');
         text.textContent = name;
@@ -306,14 +326,20 @@ function initPresetsUI() {
             swatches.appendChild(swatch);
         });
         
-        button.appendChild(text);
-        button.appendChild(swatches);
+        presetDiv.appendChild(text);
+        presetDiv.appendChild(swatches);
         
-        button.addEventListener('click', () => {
+        presetDiv.addEventListener('click', () => {
             applyPalettePreset(colorPresets[name]);
         });
+        presetDiv.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                presetDiv.click();
+            }
+        });
         
-        container.appendChild(button);
+        container.appendChild(presetDiv);
     }
 }
 
@@ -345,7 +371,7 @@ function pickNonTreeColor(seed){
   if (!isCycleMode){
     return (singleColorEl && singleColorEl.value) || '#58c470';
   }
-  const pal = (branchPalette && branchPalette.length) ? branchPalette : [ '#58c470' ];
+  const pal = (branchPalette && branchPalette.length) ? branchPalette : [ '#58c440' ];
   const rng = mulberry32(seed || newSeed());
   const idx = Math.floor(rng() * pal.length) % pal.length;
   return pal[idx];
