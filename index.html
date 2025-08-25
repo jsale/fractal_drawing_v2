@@ -10,12 +10,16 @@
 <header><strong>Fractal Forest</strong> — Tree - Fern modes • Click/drag to draw • Click branch to edit level <span id="modeBadge" class="modeBadge">Tree</span></header>
 <main>
   <div class="controls">
-    <div id="tabButtons">
-      <button class="active" data-tab="shapeTab">Shape</button>
-      <button data-tab="colorTab">Color</button>
-      <button data-tab="presetsTab">Presets</button>
-      <button data-tab="historyTab">History</button>
+    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+        <div id="tabButtons" style="flex-grow: 1;">
+            <button class="active" data-tab="shapeTab">Shape</button>
+            <button data-tab="colorTab">Color</button>
+            <button data-tab="presetsTab">Presets</button>
+            <button data-tab="historyTab">History</button>
+        </div>
+        <button id="helpBtn" class="action">?</button>
     </div>
+    <div id="helpDisplay" class="small hint" style="display:none; margin-bottom: 8px; padding: 8px; border-radius: 8px; background: #202833;"></div>
 
     <div id="shapeTab" class="tab active">
       <label class="row" for="modeSelect">Mode</label>
@@ -32,106 +36,119 @@
 
       <div id="treeParams">
         <label class="row" for="levels">Branch levels <span id="levelsLabel">5</span></label>
-        <input id="levels" type="range" min="1" max="10" value="5">
+        <input id="levels" type="range" min="1" max="10" value="5" title="The number of recursive branch splits.">
         <label class="row" for="baseLen">Base length <span id="lenLabel">60</span></label>
-        <input id="baseLen" type="range" min="10" max="220" value="60">
+        <input id="baseLen" type="range" min="10" max="220" value="60" title="The length of the first trunk segment in pixels.">
         <label class="row" for="lenScale">Length scale <span id="lenScaleLabel">0.68</span></label>
-        <input id="lenScale" type="range" min="0.5" max="1.0" step="0.01" value="0.68">
+        <input id="lenScale" type="range" min="0.5" max="1.0" step="0.01" value="0.68" title="The ratio of a branch's length to its parent's length. Lower values create denser trees.">
         <label class="row" for="angle">Branch angle (deg) <span id="angleLabel">25</span></label>
-        <input id="angle" type="range" min="0" max="60" value="25">
+        <input id="angle" type="range" min="0" max="60" value="25" title="The angle between the two main branches at each split.">
         <label class="row" for="lenRand">Length Randomness <span id="lenRandLabel">0.20</span></label>
-        <input id="lenRand" type="range" min="0" max="1" step="0.01" value="0.20">
+        <input id="lenRand" type="range" min="0" max="1" step="0.01" value="0.20" title="How much random variation to apply to branch lengths.">
         <label class="row" for="angleRand">Angle Randomness <span id="angleRandLabel">0.20</span></label>
-        <input id="angleRand" type="range" min="0" max="1" step="0.01" value="0.20">
+        <input id="angleRand" type="range" min="0" max="1" step="0.01" value="0.20" title="How much random variation to apply to branch angles.">
         <label style="display:block;margin-top:8px;font-size:12px;color:var(--muted);">
-            <input type="checkbox" id="uniformAngleRand">
+            <input type="checkbox" id="uniformAngleRand" title="If checked, the same angle randomness is applied to all branches on a single tree, creating a 'windswept' look.">
             Apply uniformly to all branches
         </label>
         <label class="row" for="baseWidth">Base width (px) <span id="widthLabel">12</span></label>
-        <input id="baseWidth" type="range" min="1" max="50" value="12">
+        <input id="baseWidth" type="range" min="1" max="50" value="12" title="The width of the first trunk segment in pixels.">
         <label class="row" for="widthScale">Width scale <span id="scaleLabel">0.68</span></label>
-        <input id="widthScale" type="range" min="0.5" max="1.5" step="0.01" value="0.68">
+        <input id="widthScale" type="range" min="0.5" max="1.5" step="0.01" value="0.68" title="The ratio of a branch's width to its parent's width.">
         
+        <button id="randomizeTreeBtn" class="action" style="width:100%; margin-top: 10px;">🎲 Randomize Tree Shape</button>
+
         <hr style="opacity:.1; margin: 10px 0;">
         <label style="display: block;">
-            <input type="checkbox" id="addBlossoms"> Add Blossoms/Leaves
+            <input type="checkbox" id="addTreeBlossoms" title="Enable or disable blossoms at the tip of each branch."> Add Blossoms/Leaves
         </label>
-        <div id="blossomControls" style="display:none;">
-            <label class="row" for="blossomSize">Blossom Size (px) <span id="blossomSizeLabel">3</span></label>
-            <input id="blossomSize" type="range" min="1" max="15" value="3">
-            <label class="row" for="blossomColor">Blossom Color</label>
-            <input id="blossomColor" type="color" value="#ffc0cb">
+        <div id="treeBlossomControls" style="display:none;">
+            <label class="row" for="treeBlossomSize">Blossom Size (px) <span id="treeBlossomSizeLabel">3</span></label>
+            <input id="treeBlossomSize" type="range" min="1" max="15" value="3" title="The radius of the blossom circle in pixels.">
+            <label class="row" for="treeBlossomColor">Blossom Color</label>
+            <input id="treeBlossomColor" type="color" value="#ffc0cb">
         </div>
       </div>
 
-	  <div id="fernParams" style="margin-top:10px">
+      <div id="fernParams" style="margin-top:10px">
         <label class="row" for="fernPoints">Fern points/spawn <span id="fernPointsLabel">1000</span></label>
-        <input id="fernPoints" type="range" min="100" max="20000" step="100" value="1000">
+        <input id="fernPoints" type="range" min="100" max="20000" step="100" value="1000" title="The number of points used to draw each fern. Higher values are denser.">
         <label class="row" for="fernSize">Fern size (relative) <span id="fernSizeLabel">0.01</span></label>
-        <input id="fernSize" type="range" min="0.0005" max="0.2" step="0.0001" value="0.01">
+        <input id="fernSize" type="range" min="0.0005" max="0.2" step="0.0001" value="0.01" title="The overall size of the fern relative to the canvas height.">
       </div>
 
-	  <div id="pathParams" style="margin-top:10px; display:none;">
+      <div id="pathParams" style="margin-top:10px; display:none;">
         <label class="row" for="pathWidth">Path Width (px) <span id="pathWidthLabel">5</span></label>
-        <input id="pathWidth" type="range" min="1" max="100" value="5">
+        <input id="pathWidth" type="range" min="1" max="100" value="5" title="The width of the drawn path in pixels.">
       </div>
 
 	  <div id="snowParams" style="margin-top: 10px">
         <label class="row" for="snowIter">Snowflake Iteration <span id="snowIterLabel">4</span></label>
-        <input id="snowIter" type="range" min="1" max="20" step="1" value="4">
+        <input id="snowIter" type="range" min="1" max="20" step="1" value="4" title="The number of recursive iterations for the snowflake fractal. Higher is more detailed.">
         <label class="row" for="snowSize">Snowflake Size <span id="snowSizeLabel">40</span></label>
-        <input id="snowSize" type="range" min="0.01" max="1" step="0.01" value="0.2">
+        <input id="snowSize" type="range" min="0.01" max="1" step="0.01" value="0.2" title="The overall size of the snowflake relative to the canvas size.">
         <label class="row" for="snowStroke">Line Width <span id="snowStrokeLabel">2</span></label>
-        <input id="snowStroke" type="range" min="1" max="50" step="1" value="2">
+        <input id="snowStroke" type="range" min="1" max="50" step="1" value="2" title="The width of the snowflake lines in pixels.">
 	  </div>
 		
 	  <div id="flowerParams" style="margin-top: 10px">
         <label class="row" for="flowerIter">Flower Iteration <span id="flowerIterLabel">3</span></label>
-        <input id="flowerIter" type="range" min="1" max="20" step="1" value="3">
+        <input id="flowerIter" type="range" min="1" max="20" step="1" value="3" title="The number of L-System iterations. Higher values create a more complex flower.">
         <label class="row" for="flowerAngle">Flower Angle <span id="flowerAngleLabel">20</span></label>
-        <input id="flowerAngle" type="range" min="1" max="90" step="1" value="60">
+        <input id="flowerAngle" type="range" min="1" max="180" step="1" value="60" title="The angle used for turning in the L-System rules.">
         <label class="row" for="flowerStep">Flower Step <span id="flowerStepLabel">1</span></label>
-        <input id="flowerStep" type="range" min="0.01" max="1" step="0.01" value="0.01">
+        <input id="flowerStep" type="range" min="0.01" max="1" step="0.01" value="0.01" title="The length of each forward step, relative to canvas size.">
         <label class="row" for="flowerStroke">Flower Stroke <span id="flowerStrokeLabel">2</span></label>
-        <input id="flowerStroke" type="range" min="1" max="10" step="1" value="2">
+        <input id="flowerStroke" type="range" min="1" max="10" step="1" value="2" title="The width of the flower lines in pixels.">
+
+        <hr style="opacity:.1; margin: 10px 0;">
+        <label style="display: block;">
+            <input type="checkbox" id="addFlowerBlossoms" title="Enable or disable blossoms at the tip of each stem."> Add Blossoms
+        </label>
+        <div id="flowerBlossomControls" style="display:none;">
+            <label class="row" for="flowerBlossomSize">Blossom Size (px) <span id="flowerBlossomSizeLabel">2</span></label>
+            <input id="flowerBlossomSize" type="range" min="1" max="15" value="2" title="The radius of the blossom circle in pixels.">
+            <label class="row" for="flowerBlossomColor">Blossom Color</label>
+            <input id="flowerBlossomColor" type="color" value="#FFFFFF">
+        </div>
 	  </div>
 	
 	  <div id="vineParams" style="margin-top: 10px">
         <label class="row" for="vineLength">Vine Length <span id="vineLengthLabel">100</span></label>
-        <input id="vineLength" type="range" min="1" max="200" step="1" value="100">
+        <input id="vineLength" type="range" min="1" max="200" step="1" value="100" title="The number of segments in the vine.">
         <label class="row" for="vineNoise">Vine Noise <span id="vineNoiseLabel">0.01</span></label>
-        <input id="vineNoise" type="range" min="0.001" max="1" step="0.001" value="0.01">
+        <input id="vineNoise" type="range" min="0.001" max="1" step="0.001" value="0.01" title="The scale of the Perlin noise, affecting how 'wavy' the vine is.">
         <label class="row" for="vineStroke">Vine Stroke <span id="vineStrokeLabel">0.1</span></label>
-        <input id="vineStroke" type="range" min="0.1" max="10" step="0.1" value="0.1">
+        <input id="vineStroke" type="range" min="0.1" max="10" step="0.1" value="0.1" title="The width of the vine in pixels.">
 	  </div>
 	
 		<div id="cloudParams" style="display:none">
 		  <label for="cloudCount">Circles per stamp: <span id="cloudCountLabel">10</span></label>
-		  <input id="cloudCount" type="range" min="1" max="30" value="10">
+		  <input id="cloudCount" type="range" min="1" max="30" value="10" title="The number of circles drawn for each cloud stamp.">
 		  <label for="cloudMinD">Min diameter (px): <span id="cloudMinDLabel">20</span></label>
-		  <input id="cloudMinD" type="range" min="1" max="400" value="20">
+		  <input id="cloudMinD" type="range" min="1" max="400" value="20" title="The minimum possible diameter for a cloud circle.">
 		  <label for="cloudMaxD">Max diameter (px): <span id="cloudMaxDLabel">120</span></label>
-		  <input id="cloudMaxD" type="range" min="1" max="800" value="120">
+		  <input id="cloudMaxD" type="range" min="1" max="800" value="120" title="The maximum possible diameter for a cloud circle.">
 		  <label for="cloudMinW">Min line width (px): <span id="cloudMinWLabel">1.0</span></label>
-		  <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="1">
+		  <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="1" title="The minimum possible line width for a cloud circle.">
 		  <label for="cloudMaxW">Max line width (px): <span id="cloudMaxWLabel">4.0</span></label>
-		  <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="4">
+		  <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="4" title="The maximum possible line width for a cloud circle.">
 		  <label for="cloudBlur">Highlight blur (px): <span id="cloudBlurLabel">8</span></label>
-		  <input id="cloudBlur" type="range" min="0" max="40" step="1" value="8">
+		  <input id="cloudBlur" type="range" min="0" max="40" step="1" value="8" title="The blur radius for the cloud's shadow/highlight effect.">
 		  <label for="cloudShadowColor">Highlight color</label>
 		  <input id="cloudShadowColor" type="color" value="#555555">
 		</div>
 
 		<div id="otherScaleControls" style="margin-top:10px">
 		  <label for="otherScaleMin">Non-tree random scale MIN: <span id="otherScaleMinLabel">0.80×</span></label>
-		  <input id="otherScaleMin" type="range" min="0.2" max="3" step="0.01" value="0.8">
+		  <input id="otherScaleMin" type="range" min="0.2" max="3" step="0.01" value="0.8" title="The minimum random size multiplier for non-tree objects.">
 		  <label for="otherScaleMax">Non-tree random scale MAX: <span id="otherScaleMaxLabel">1.20×</span></label>
-		  <input id="otherScaleMax" type="range" min="0.2" max="3" step="0.01" value="1.2">
+		  <input id="otherScaleMax" type="range" min="0.2" max="3" step="0.01" value="1.2" title="The maximum random size multiplier for non-tree objects.">
 		</div>
 
       <div id="eraserParams" style="margin-top:10px; display:none">
         <label class="row" for="eraserSize">Eraser size (px) <span id="eraserSizeLabel">24</span></label>
-        <input id="eraserSize" type="range" min="6" max="80" value="24">
+        <input id="eraserSize" type="range" min="6" max="80" value="24" title="The width of the eraser stroke in pixels.">
       </div>
 
       <div class="btnrow">
@@ -145,9 +162,9 @@
 
 		<div id="svgExportOptions" style="margin-top:10px">
 		  <label for="svgFernThin">SVG fern point thinning: <span id="svgFernThinLabel">1×</span></label>
-		  <input id="svgFernThin" type="range" min="1" max="8" step="1" value="1">
+		  <input id="svgFernThin" type="range" min="1" max="8" step="1" value="1" title="Reduces the number of points in exported SVG ferns to keep file sizes small. 1x is full detail.">
 		  <label style="display:block;margin-top:8px;">
-			<input type="checkbox" id="svgGroupByLevel">
+			<input type="checkbox" id="svgGroupByLevel" title="In the exported SVG, group all branches of the same level into a <g> tag.">
 			Group tree segments by level
 		  </label>
 		</div>
@@ -155,12 +172,12 @@
 
 		<div id="animParams" style="margin-top:10px">
           <label style="display: block;">
-              <input type="checkbox" id="animateWind"> Animate wind (Gentle sway)
+              <input type="checkbox" id="animateWind" title="Enable or disable a gentle swaying animation for all trees."> Animate wind (Gentle sway)
           </label>
 		  <label class="row" for="windAmp">Wind amplitude (deg) <span id="windAmpLabel">3</span></label>
-		  <input id="windAmp" type="range" min="0" max="15" step="0.1" value="3">
+		  <input id="windAmp" type="range" min="0" max="15" step="0.1" value="3" title="How far the branches sway in the wind.">
 		  <label class="row" for="windSpeed">Wind speed (Hz) <span id="windSpeedLabel">0.20</span></label>
-		  <input id="windSpeed" type="range" min="0" max="1" step="0.01" value="0.20">
+		  <input id="windSpeed" type="range" min="0" max="1" step="0.01" value="0.20" title="How fast the branches sway in the wind.">
 		</div>
     </div>
 
@@ -169,7 +186,7 @@
         <hr style="opacity:.2;margin:10px 0;">
         <div id="branchColorPanel" class="visible" aria-hidden="false"></div>
         <label style="margin-top: 8px; display: block;">
-            <input type="checkbox" id="randomBranchColor"> Random Branch Color (Trees Only)
+            <input type="checkbox" id="randomBranchColor" title="When checked, each new branch on a tree will be a random color from the palette, instead of based on its level."> Random Branch Color (Trees Only)
         </label>
         <hr style="opacity:.2;margin:10px 0;">
 
@@ -188,21 +205,21 @@
         <hr style="opacity:.2;margin:10px 0;">
         <div id="newObjectAlphaSection" style="margin-top:8px;">
             <label>
-                <input type="checkbox" id="applyNewObjectAlpha">
+                <input type="checkbox" id="applyNewObjectAlpha" title="Enable to set a custom transparency for all new objects being drawn.">
                 Set transparency for new objects
             </label>
             <div id="newObjectAlphaControls" style="display:none; margin-top: 6px;">
                 <label class="row" for="newObjectAlphaSlider">Object Alpha <span id="newObjectAlphaLabel">1.00</span></label>
-                <input id="newObjectAlphaSlider" type="range" min="0" max="1" step="0.01" value="1">
+                <input id="newObjectAlphaSlider" type="range" min="0" max="1" step="0.01" value="1" title="The alpha (transparency) value for new objects. 0 is fully transparent, 1 is fully opaque.">
             </div>
         </div>
 
       <div id="levelEditBox" style="display:none; margin-top:10px">
         <div class="small">Editing level: <strong id="editingLevelText"></strong></div>
         <label class="row" for="levelAlpha">Level alpha <span id="levelAlphaLabel">1.00</span></label>
-        <input id="levelAlpha" type="range" min="0" max="1" step="0.01" value="1">
+        <input id="levelAlpha" type="range" min="0" max="1" step="0.01" value="1" title="The alpha (transparency) of the selected branch level.">
         <label>
-            <input type="checkbox" id="applyAllTrees">
+            <input type="checkbox" id="applyAllTrees" title="When checked, changes to this level's alpha or color will apply to ALL trees on the canvas, not just the selected one.">
             Apply to all trees at this level
         </label>
       </div>
@@ -211,7 +228,7 @@
 	  <label for="backgroundColor">Background Color 1:</label>
 	  <input type="color" id="backgroundColor" value="#000000">
       <label style="display: block; margin-top: 8px;">
-        <input type="checkbox" id="enableGradient"> Enable Background Gradient
+        <input type="checkbox" id="enableGradient" title="Enable a two-color gradient for the background."> Enable Background Gradient
       </label>
       <div id="gradientControls" style="display:none;">
         <label for="backgroundColor2">Background Color 2:</label>
@@ -233,7 +250,7 @@
           <button id="playbackBtn" class="action">Playback</button>
           <div style="margin-top: 6px;">
               <label class="row" for="playbackSpeed">Playback Speed <span id="playbackSpeedLabel">Medium</span></label>
-              <input id="playbackSpeed" type="range" min="1" max="1000" value="500">
+              <input id="playbackSpeed" type="range" min="1" max="1000" value="500" title="The speed of the history playback.">
           </div>
       </div>
       <hr style="opacity:.2;margin:10px 0;">

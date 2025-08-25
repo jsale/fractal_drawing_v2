@@ -5,6 +5,9 @@ const controls     = document.querySelector('.controls');
 const modeBadge = document.getElementById('modeBadge');
 const modeSelect= document.getElementById('modeSelect');
 
+const helpBtn = document.getElementById('helpBtn');
+const helpDisplay = document.getElementById('helpDisplay');
+
 const levelsEl  = document.getElementById('levels');
 const baseEl    = document.getElementById('baseLen');
 const lenScaleEl  = document.getElementById('lenScale');
@@ -16,18 +19,16 @@ const baseWidthEl = document.getElementById('baseWidth');
 const widthScaleEl= document.getElementById('widthScale');
 const randomBranchColorEl = document.getElementById('randomBranchColor');
 
-// Blossom Controls
-const addBlossomsEl = document.getElementById('addBlossoms');
-const blossomControlsEl = document.getElementById('blossomControls');
-const blossomSizeEl = document.getElementById('blossomSize');
-const blossomSizeLabel = document.getElementById('blossomSizeLabel');
-const blossomColorEl = document.getElementById('blossomColor');
+const addTreeBlossomsEl = document.getElementById('addTreeBlossoms');
+const treeBlossomControlsEl = document.getElementById('treeBlossomControls');
+const treeBlossomSizeEl = document.getElementById('treeBlossomSize');
+const treeBlossomSizeLabel = document.getElementById('treeBlossomSizeLabel');
+const treeBlossomColorEl = document.getElementById('treeBlossomColor');
 
 const fernPointsEl = document.getElementById('fernPoints');
 const fernSizeEl   = document.getElementById('fernSize');
 
 const eraserSizeEl = document.getElementById('eraserSize');
-
 const pathWidthEl = document.getElementById('pathWidth');
 
 const levelAlphaEl = document.getElementById('levelAlpha');
@@ -38,7 +39,6 @@ const applyAllEl = document.getElementById('applyAllTrees');
 const branchPanel    = document.getElementById('branchColorPanel');
 const backgroundColorEl = document.getElementById('backgroundColor');
 
-// Background Gradient Controls
 const enableGradientEl = document.getElementById('enableGradient');
 const gradientControlsEl = document.getElementById('gradientControls');
 const backgroundColor2El = document.getElementById('backgroundColor2');
@@ -68,6 +68,12 @@ const flowerAngleLabel  = document.getElementById('flowerAngleLabel');
 const flowerStepLabel   = document.getElementById('flowerStepLabel');
 const flowerStrokeLabel = document.getElementById('flowerStrokeLabel');
 
+const addFlowerBlossomsEl = document.getElementById('addFlowerBlossoms');
+const flowerBlossomControlsEl = document.getElementById('flowerBlossomControls');
+const flowerBlossomSizeEl = document.getElementById('flowerBlossomSize');
+const flowerBlossomSizeLabel = document.getElementById('flowerBlossomSizeLabel');
+const flowerBlossomColorEl = document.getElementById('flowerBlossomColor');
+
 const vineLengthEl  = document.getElementById('vineLength');
 const vineNoiseEl   = document.getElementById('vineNoise');
 const vineStrokeEl  = document.getElementById('vineStroke');
@@ -90,7 +96,6 @@ const cloudMinWLabel = document.getElementById('cloudMinWLabel');
 const cloudMaxWLabel = document.getElementById('cloudMaxWLabel');
 const cloudBlurLabel = document.getElementById('cloudBlurLabel');
 
-// Unified Color Controls
 const nonTreeColorModeEl = document.getElementById('nonTreeColorMode');
 const singleColorBoxEl = document.getElementById('singleColorBox');
 const singleColorEl = document.getElementById('singleColor');
@@ -133,11 +138,12 @@ function updateUIValues(){
   setText(angleRandLabel,   angleRandEl ? Number(angleRandEl.value).toFixed(2) : '');
   setText(widthLabel,  baseWidthEl ? baseWidthEl.value : '');
   setText(scaleLabel,  widthScaleEl ? Number(widthScaleEl.value).toFixed(2) : '');
-  setText(blossomSizeLabel, blossomSizeEl ? blossomSizeEl.value : '');
+  setText(treeBlossomSizeLabel, treeBlossomSizeEl ? treeBlossomSizeEl.value : '');
   setText(pathWidthLabel, pathWidthEl ? pathWidthEl.value : '');
   setText(fernPointsLabel, fernPointsEl ? fernPointsEl.value : '');
   setText(fernSizeLabel,   fernSizeEl ? Number(fernSizeEl.value).toFixed(2) : '');
   setText(eraserSizeLabel, eraserSizeEl ? eraserSizeEl.value : '');
+  setText(flowerBlossomSizeLabel, flowerBlossomSizeEl ? flowerBlossomSizeEl.value : '');
 
   if (svgFernThinEl && svgFernThinLabel) svgFernThinLabel.textContent = `${svgFernThinEl.value}×`;
   if (windAmpEl && windAmpLabel)       windAmpLabel.textContent   = Number(windAmpEl.value).toFixed(0);
@@ -191,7 +197,7 @@ const eraserSizeLabel = document.getElementById('eraserSizeLabel');
 
 [
   levelsEl,baseEl,lenScaleEl,angleEl,lenRandEl,angleRandEl,baseWidthEl,widthScaleEl,pathWidthEl,fernPointsEl,fernSizeEl,eraserSizeEl,
-  blossomSizeEl,
+  treeBlossomSizeEl, flowerBlossomSizeEl,
   windAmpEl,windSpeedEl, svgFernThinEl,
   snowIterEl,snowSizeEl,snowStrokeEl,
   flowerIterEl,flowerAngleEl,flowerStepEl,flowerStrokeEl,
@@ -219,9 +225,14 @@ function updateModeUI(){
 if (modeSelect) modeSelect.addEventListener('change', updateModeUI);
 updateModeUI();
 
-if (addBlossomsEl) {
-    addBlossomsEl.addEventListener('change', () => {
-        if(blossomControlsEl) blossomControlsEl.style.display = addBlossomsEl.checked ? 'block' : 'none';
+if (addTreeBlossomsEl) {
+    addTreeBlossomsEl.addEventListener('change', () => {
+        if(treeBlossomControlsEl) treeBlossomControlsEl.style.display = addTreeBlossomsEl.checked ? 'block' : 'none';
+    });
+}
+if (addFlowerBlossomsEl) {
+    addFlowerBlossomsEl.addEventListener('change', () => {
+        if(flowerBlossomControlsEl) flowerBlossomControlsEl.style.display = addFlowerBlossomsEl.checked ? 'block' : 'none';
     });
 }
 
@@ -234,6 +245,7 @@ if (enableGradientEl) {
 [backgroundColorEl, backgroundColor2El].filter(Boolean).forEach(el => {
     el.addEventListener('input', () => {
         if (!isAnimating()) redrawAll();
+        pushHistory();
     });
 });
 
@@ -244,6 +256,29 @@ if (applyNewObjectAlphaEl) {
             newObjectAlphaControlsEl.style.display = applyNewObjectAlphaEl.checked ? 'block' : 'none';
         }
     });
+}
+
+if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+        const isHelpActive = controls.classList.toggle('help-mode');
+        if (isHelpActive) {
+            helpDisplay.textContent = 'Help Mode Activated: Tap any control to see its description here.';
+            helpDisplay.style.display = 'block';
+        } else {
+            helpDisplay.style.display = 'none';
+        }
+    });
+
+    controls.addEventListener('click', (e) => {
+        if (controls.classList.contains('help-mode')) {
+            const target = e.target.closest('[title]');
+            if (target && target.title) {
+                e.preventDefault();
+                e.stopPropagation();
+                helpDisplay.textContent = target.title;
+            }
+        }
+    }, true);
 }
 
 function ensureTreeDefaults(levels){

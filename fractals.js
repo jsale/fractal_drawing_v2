@@ -169,6 +169,32 @@ function buildFlowerSegments(fl){
   fl.segments = segs;
 }
 
+function findFlowerTips(fl) {
+    if (!fl.segments || fl.segments.length === 0) {
+        fl.tips = [];
+        return;
+    }
+    const startPoints = new Set();
+    const endPoints = new Map();
+
+    const rootKey = `${fl.segments[0].x1},${fl.segments[0].y1}`;
+    startPoints.add(rootKey);
+
+    for (const seg of fl.segments) {
+        const startKey = `${seg.x1},${seg.y1}`;
+        const endKey = `${seg.x2},${seg.y2}`;
+        startPoints.add(startKey);
+        endPoints.set(endKey, { x: seg.x2, y: seg.y2 });
+    }
+
+    fl.tips = [];
+    for (const [key, point] of endPoints.entries()) {
+        if (!startPoints.has(key)) {
+            fl.tips.push(point);
+        }
+    }
+}
+
 function buildVinePolyline(v){
   const N = Math.max(10, v.length|0);
   const scl = Math.max(0.001, parseFloat(v.noise)||0.01);
@@ -235,10 +261,22 @@ function drawSnowflakes(ctx, s){
 
 function drawFlowers(ctx, fl){
   ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.globalAlpha = fl.alpha ?? 1.0; ctx.strokeStyle = fl.color || '#ff88cc'; ctx.lineWidth = fl.stroke || 1.5;
+  ctx.globalAlpha = fl.alpha ?? 1.0; 
+  
+  ctx.strokeStyle = fl.color || '#ff88cc'; 
+  ctx.lineWidth = fl.stroke || 1.5;
   ctx.beginPath();
   for (const seg of fl.segments){ ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); }
   ctx.stroke();
+
+  if (fl.hasBlossoms && fl.tips) {
+    ctx.fillStyle = fl.blossomColor || '#ffffff';
+    for (const tip of fl.tips) {
+        ctx.beginPath();
+        ctx.arc(tip.x, tip.y, fl.blossomSize || 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+  }
 }
 
 function drawVines(ctx, v){
@@ -272,7 +310,6 @@ function drawTreeFromSegments(ctx, tree){
       ctx.beginPath(); ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); ctx.stroke();
     }
     
-    // **NEW** Use the tree's saved blossom properties
     if (tree.hasBlossoms && seg.children.length === 0) {
         ctx.fillStyle = tree.blossomColor || '#ffc0cb';
         ctx.globalAlpha = la;
@@ -345,7 +382,6 @@ function drawAnimatedTree(ctx, tree, time) {
         ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
       }
       
-      // **NEW** Use the tree's saved blossom properties in the animation loop
       if (tree.hasBlossoms && seg.children.length === 0) {
         ctx.fillStyle = tree.blossomColor || '#ffc0cb';
         ctx.globalAlpha = la;

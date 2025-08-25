@@ -95,7 +95,7 @@ function drawBackground(ctx) {
         gradient.addColorStop(1, backgroundColor2El.value);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        fernCanvas.style.backgroundColor = ''; // Clear direct style to not interfere
+        fernCanvas.style.backgroundColor = '';
     } else {
         ctx.fillStyle = backgroundColorEl.value;
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -200,25 +200,37 @@ function createTreeFromUI(x,y){
     randomColor: randomBranchColorEl.checked,
     rngSeed: newSeed(), 
     segments: [],
-    // **NEW** Store blossom properties with the tree
-    hasBlossoms: addBlossomsEl.checked,
-    blossomSize: parseFloat(blossomSizeEl.value),
-    blossomColor: blossomColorEl.value
+    hasBlossoms: addTreeBlossomsEl.checked,
+    blossomSize: parseFloat(treeBlossomSizeEl.value),
+    blossomColor: treeBlossomColorEl.value
   };
   buildTreeSegments(t);
   return t;
 }
-
 function createSnowflakeFromUI(cx, cy){
   const s = { cx, cy, size: Math.min(treeCanvas.width, treeCanvas.height) * parseFloat(snowSizeEl.value), iter: parseInt(snowIterEl.value, 10),
     stroke: parseFloat(snowStrokeEl.value), segments: [], alpha: getNewObjectAlpha() };
   buildKochSnowflake(s); return s;
 }
 function createFlowerFromUI(cx, cy){
-  const fl = { cx, cy, iter: parseInt(flowerIterEl.value, 10), angle: parseFloat(flowerAngleEl.value),
-    step: Math.min(treeCanvas.width, treeCanvas.height) * parseFloat(flowerStepEl.value), stroke: parseFloat(flowerStrokeEl.value),
-    rngSeed: newSeed(), segments: [], alpha: getNewObjectAlpha() };
-  buildFlowerSegments(fl); return fl;
+  const scale = getNonTreeScale();
+  const fl = { 
+    cx, cy, 
+    iter: parseInt(flowerIterEl.value, 10), 
+    angle: parseFloat(flowerAngleEl.value) * scale,
+    step: Math.min(treeCanvas.width, treeCanvas.height) * parseFloat(flowerStepEl.value) * scale, 
+    stroke: parseFloat(flowerStrokeEl.value),
+    rngSeed: newSeed(), 
+    segments: [], 
+    tips: [],
+    alpha: getNewObjectAlpha(),
+    hasBlossoms: addFlowerBlossomsEl.checked,
+    blossomSize: parseFloat(flowerBlossomSizeEl.value) * scale,
+    blossomColor: flowerBlossomColorEl.value
+  };
+  buildFlowerSegments(fl);
+  findFlowerTips(fl);
+  return fl;
 }
 function createVineFromUI(cx, cy){
   const v = { cx, cy, length: parseInt(vineLengthEl.value, 10), noise: parseFloat(vineNoiseEl.value), stroke: parseFloat(vineStrokeEl.value),
@@ -367,7 +379,10 @@ function spawnAt(p){
     const s = createSnowflakeFromUI(p.x, p.y); s.rngSeed = nextStampSeed(); s.size *= getNonTreeScale(); s.color = pickNonTreeColor(s.rngSeed); snowflakes.push(s);
     newOp = {type: 'snowflake', data: s};
   } else if(mode==='flower'){
-    const fl = createFlowerFromUI(p.x, p.y); fl.rngSeed = nextStampSeed(); fl.step *= getNonTreeScale(); fl.color = pickNonTreeColor(fl.rngSeed); flowers.push(fl);
+    const fl = createFlowerFromUI(p.x, p.y); 
+    fl.rngSeed = nextStampSeed(); 
+    fl.color = pickNonTreeColor(fl.rngSeed); 
+    flowers.push(fl);
     newOp = {type: 'flower', data: fl};
   } else if(mode==='vine'){
     const v = createVineFromUI(p.x, p.y); v.rngSeed = nextStampSeed(); const scale = getNonTreeScale(); v.length = Math.max(10, Math.round(v.length * scale)); v.step = 4 * scale; v.color = pickNonTreeColor(v.rngSeed); vines.push(v);
@@ -388,11 +403,16 @@ function spawnAt(p){
 }
 
 /* ===================== Buttons ===================== */
-const undoBtn = document.getElementById('undoBtn'); const redoBtn = document.getElementById('redoBtn'); const clearBtn= document.getElementById('clearBtn');
-const saveBtn = document.getElementById('saveBtn'); const exportSvgBtn = document.getElementById('exportSvgBtn'); const exportPngLayersBtn = document.getElementById('exportPngLayersBtn');
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
+const clearBtn= document.getElementById('clearBtn');
+const saveBtn = document.getElementById('saveBtn');
+const exportSvgBtn = document.getElementById('exportSvgBtn');
+const exportPngLayersBtn = document.getElementById('exportPngLayersBtn');
 const exportSessionBtn = document.getElementById('exportSessionBtn');
 const loadSessionBtn = document.getElementById('loadSessionBtn');
 const sessionFileInput = document.getElementById('sessionFileInput');
+const randomizeTreeBtn = document.getElementById('randomizeTreeBtn');
 
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
@@ -402,6 +422,24 @@ if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
 if (loadSessionBtn) loadSessionBtn.addEventListener('click', () => sessionFileInput.click());
 if (sessionFileInput) sessionFileInput.addEventListener('change', loadSession);
+
+function randomizeSlider(el) {
+    if (!el) return;
+    const min = parseFloat(el.min);
+    const max = parseFloat(el.max);
+    el.value = min + Math.random() * (max - min);
+}
+
+if (randomizeTreeBtn) {
+    randomizeTreeBtn.addEventListener('click', () => {
+        randomizeSlider(lenScaleEl);
+        randomizeSlider(angleEl);
+        randomizeSlider(lenRandEl);
+        randomizeSlider(angleRandEl);
+        randomizeSlider(widthScaleEl);
+        updateUIValues();
+    });
+}
 
 function playHistory() {
     if (isPlaying || history.length < 2) return;
@@ -426,12 +464,19 @@ function playHistory() {
 }
 
 function exportSession() {
-    const sessionData = {
-        history: history,
-        histIndex: histIndex
-    };
-    const jsonString = JSON.stringify(sessionData, null, 2);
-    const blob = new Blob([jsonString], {type: "application/json"});
+    const parts = [];
+    parts.push('{"history":[');
+    history.forEach((state, index) => {
+        parts.push(JSON.stringify(state));
+        if (index < history.length - 1) {
+            parts.push(',');
+        }
+    });
+    parts.push('],"histIndex":');
+    parts.push(histIndex.toString());
+    parts.push('}');
+
+    const blob = new Blob(parts, {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
