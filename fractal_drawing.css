@@ -16,7 +16,9 @@ html, body {
 }
 header {
   padding: 12px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, .03), transparent)
+  background: linear-gradient(90deg, rgba(255, 255, 255, .03), transparent);
+  display: flex;
+  align-items: center;
 }
 main {
   display: flex;
@@ -27,7 +29,14 @@ main {
   width: 330px;
   padding: 12px;
   box-sizing: border-box;
-  background: rgba(8, 12, 18, .88)
+  background: rgba(8, 12, 18, .88);
+  display: flex;
+  flex-direction: column;
+}
+#tabsContainer {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding-bottom: 24px;
 }
 #tabButtons {
   display: flex;
@@ -50,8 +59,6 @@ main {
 }
 .tab {
   display: none;
-  overflow: auto;
-  max-height: calc(100vh - 160px)
 }
 .tab.active {
   display: block
@@ -107,18 +114,6 @@ canvas {
   display: block;
   touch-action: none
 }
-#branchColorPanel {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity .22s ease, transform .22s ease;
-  pointer-events: none;
-  margin-top: 10px
-}
-#branchColorPanel.visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto
-}
 .colorRow {
   display: flex;
   align-items: center;
@@ -154,6 +149,9 @@ canvas {
     cursor: pointer;
     text-align: left;
     width: 100%;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 .preset-swatches {
     display: flex;
@@ -164,4 +162,46 @@ canvas {
     border-radius: 4px;
     margin-right: -4px;
     border: 1px solid rgba(0,0,0,0.5);
+}
+
+.mobile-only-btn {
+    display: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 0;
+    background: #202833;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+#closeMenuBtn {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+    .controls {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-out;
+        background: var(--panel);
+        box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+    }
+    .controls.is-visible {
+        transform: translateX(0);
+    }
+    .mobile-only-btn {
+        display: block;
+    }
+    header > strong, header > span {
+        font-size: 14px;
+    }
+    #canvasWrap {
+        width: 100%;
+        flex: 1 1 100%;
+    }
 }

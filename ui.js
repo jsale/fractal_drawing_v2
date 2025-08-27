@@ -7,6 +7,8 @@ const modeSelect= document.getElementById('modeSelect');
 
 const helpBtn = document.getElementById('helpBtn');
 const helpDisplay = document.getElementById('helpDisplay');
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const closeMenuBtn = document.getElementById('closeMenuBtn');
 
 const levelsEl  = document.getElementById('levels');
 const baseEl    = document.getElementById('baseLen');
@@ -115,6 +117,13 @@ const windAmpEl      = document.getElementById('windAmp');
 const windSpeedEl    = document.getElementById('windSpeed');
 const windAmpLabel   = document.getElementById('windAmpLabel');
 const windSpeedLabel = document.getElementById('windSpeedLabel');
+
+/* ===================== Mobile Menu Toggle ===================== */
+function toggleMenu() {
+    controls.classList.toggle('is-visible');
+}
+if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMenu);
+if (closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMenu);
 
 /* ===================== Tabs ===================== */
 const tabs = document.querySelectorAll('#tabButtons button');

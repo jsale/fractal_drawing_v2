@@ -137,6 +137,7 @@ function buildKochSnowflake(sf){
   const B = {x: sf.cx + side/2,  y: sf.cy + (1/3)*h};
   const C = {x: sf.cx - side/2,  y: sf.cy + (1/3)*h};
   let edges = [ {x1:A.x, y1:A.y, x2:B.x, y2:B.y}, {x1:B.x, y1:B.y, x2:C.x, y2:C.y}, {x1:C.x, y1:C.y, x2:A.x, y2:A.y} ];
+  const iter = Math.max(0, Math.min(6, sf.iter | 0));
   function subdivide(e){
     const {x1,y1,x2,y2} = e;
     const dx = x2 - x1, dy = y2 - y1;
@@ -145,7 +146,7 @@ function buildKochSnowflake(sf){
     const c  = {x:a.x + (ux * cos - uy * sin), y:a.y + (ux * sin + uy * cos)};
     return [ {x1:p1.x, y1:p1.y, x2:a.x, y2:a.y}, {x1:a.x,  y1:a.y,  x2:c.x, y2:c.y}, {x1:c.x,  y1:c.y,  x2:b.x, y2:b.y}, {x1:b.x,  y1:b.y,  x2:p2.x, y2:p2.y} ];
   }
-  for (let i=0; i<sf.iter; i++){
+  for (let i=0; i<iter; i++){
     let next = [];
     for (const e of edges){ next.push(...subdivide(e)); }
     edges = next;
@@ -154,7 +155,7 @@ function buildKochSnowflake(sf){
 }
 
 function buildFlowerSegments(fl){
-  const iter = Math.max(0, Math.min(7, fl.iter|0));
+  const iter = Math.max(0, Math.min(6, fl.iter|0));
   let s = 'F';
   for (let i=0;i<iter;i++){ s = s.replace(/F/g, 'F[+F]F[-F]F'); }
   const stack = []; const segs = [];

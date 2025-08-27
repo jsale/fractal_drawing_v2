@@ -77,8 +77,17 @@ function redo(){ if(histIndex<history.length-1){ histIndex++; restoreFrom(histor
 
 /* ===================== Sizing ===================== */
 function resizeCanvases(){
-  const w = window.innerWidth  - (controls ? controls.offsetWidth : 0);
+  let w;
+  const isMobile = window.innerWidth <= 768;
+
+  if (isMobile) {
+    w = window.innerWidth;
+  } else {
+    w = window.innerWidth - (controls ? controls.offsetWidth : 0);
+  }
+
   const h = window.innerHeight - (document.querySelector('header') ? document.querySelector('header').offsetHeight : 0);
+  
   [fernCanvas, treeCanvas, eraserCanvas].forEach(c=>{
     c.width = w; c.height = h;
     c.style.width = w+'px'; c.style.height = h+'px';
@@ -180,6 +189,17 @@ function getNonTreeScale(){
   if (!isFinite(min)) min = minDefault; if (!isFinite(max)) max = maxDefault;
   if (max < min) [min, max] = [max, min];
   return min + (max - min) * randUnit();
+}
+
+function getDateTimeStamp() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    const second = String(now.getSeconds()).padStart(2, '0');
+    return `${year}_${month}_${day}_${hour}_${minute}_${second}`;
 }
 
 function createTreeFromUI(x,y){
@@ -417,7 +437,7 @@ const randomizeTreeBtn = document.getElementById('randomizeTreeBtn');
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
 if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); });
-if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); redrawAll(); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download='fractal-forest.png'; link.href = out.toDataURL('image/png'); link.click(); });
+if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); redrawAll(); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
 if (loadSessionBtn) loadSessionBtn.addEventListener('click', () => sessionFileInput.click());
@@ -480,7 +500,7 @@ function exportSession() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'fractal-session.json';
+    a.download = `fractal-session_${getDateTimeStamp()}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -530,11 +550,17 @@ function buildSVG(){
   parts.push(`<g id="trees" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const t of trees){ const buckets = new Map(); for (const seg of t.segments){ if (!buckets.has(seg.level)) buckets.set(seg.level, []); buckets.get(seg.level).push(seg); } parts.push(`<g class="tree">`); for (const [lvl, arr] of buckets){ const stroke = t.branchColors[lvl] || '#ffffff', la = t.levelAlphas[lvl] ?? 1, op = Math.max(0, Math.min(1, la)); parts.push(`<g data-level="${lvl}" stroke="${escapeAttr(stroke)}" stroke-opacity="${op}" fill="none">`); for (const seg of arr){ const width = Math.max(0.1, (t.baseWidth || 12) * Math.pow(t.widthScale ?? 0.68, seg.level)); parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}" stroke-width="${width}"/>`); } parts.push(`</g>`); } parts.push(`</g>`); } parts.push(`</g>`);
   parts.push(`</svg>`); return parts.join('\n');
 }
-if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> download('fractal-forest.svg', buildSVG()) );
+if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> download(`fractal-forest_${getDateTimeStamp()}.svg`, buildSVG()) );
 function saveCanvasToFile(canvas, name){ const link = document.createElement('a'); link.download = name; link.href = canvas.toDataURL('image/png'); link.click(); }
 function makeSolidBackgroundCanvas(color){ const c = document.createElement('canvas'); c.width = treeCanvas.width; c.height = treeCanvas.height; const cx = c.getContext('2d'); drawBackground(cx); return c; }
 function makeCombinedCanvas(){ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); return out; }
-if (exportPngLayersBtn) exportPngLayersBtn.addEventListener('click', ()=>{ saveCanvasToFile(makeSolidBackgroundCanvas(backgroundColorEl.value), 'background.png'); saveCanvasToFile(fernCanvas, 'ferns.png'); saveCanvasToFile(treeCanvas, 'strokes.png'); saveCanvasToFile(makeCombinedCanvas(), 'combined.png'); });
+if (exportPngLayersBtn) exportPngLayersBtn.addEventListener('click', ()=>{ 
+    const stamp = getDateTimeStamp();
+    saveCanvasToFile(makeSolidBackgroundCanvas(backgroundColorEl.value), `background_${stamp}.png`); 
+    saveCanvasToFile(fernCanvas, `ferns_${stamp}.png`); 
+    saveCanvasToFile(treeCanvas, `strokes_${stamp}.png`); 
+    saveCanvasToFile(makeCombinedCanvas(), `combined_${stamp}.png`); 
+});
 
 /* ===================== Keyboard shortcuts ===================== */
 window.addEventListener('keydown', (e)=>{
