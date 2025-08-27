@@ -16,6 +16,8 @@ Fractal Forest Drawing App is an interactive, web-based drawing tool that lets y
   * **💾 Session Management**: Save your entire drawing session, including all objects and the complete history, to a `.json` file. Load it back any time to continue your work.
   * **🎨 Multiple Export Options**: Save your finished artwork as a high-quality **PNG**, a layered PNG (background/foreground), or a scalable **SVG** vector file for professional use.
   * **Dynamic Animation**: Add a gentle, customizable wind animation to bring your trees to life.
+  * **Responsive Design**: Controls are hidden on smaller screens, accessible with button to open/close panels.
+
 
 -----
 
