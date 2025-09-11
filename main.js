@@ -1,11 +1,9 @@
 // JavaScript Document - main.js
 
 /* ===================== DOM & contexts ===================== */
-const fernCanvas   = document.getElementById('fernCanvas');
 const treeCanvas   = document.getElementById('treeCanvas');
 const eraserCanvas = document.getElementById('eraserCanvas');
 
-const fernCtx   = fernCanvas.getContext('2d');
 const treeCtx   = treeCanvas.getContext('2d');
 const eraserCtx = eraserCanvas.getContext('2d');
 
@@ -88,7 +86,7 @@ function resizeCanvases(){
 
   const h = window.innerHeight - (document.querySelector('header') ? document.querySelector('header').offsetHeight : 0);
   
-  [fernCanvas, treeCanvas, eraserCanvas].forEach(c=>{
+  [treeCanvas, eraserCanvas].forEach(c=>{
     c.width = w; c.height = h;
     c.style.width = w+'px'; c.style.height = h+'px';
   });
@@ -97,6 +95,8 @@ function resizeCanvases(){
 window.addEventListener('resize', resizeCanvases);
 
 function drawBackground(ctx) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset any transformations
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     if (enableGradientEl && enableGradientEl.checked) {
         const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
@@ -104,12 +104,11 @@ function drawBackground(ctx) {
         gradient.addColorStop(1, backgroundColor2El.value);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        fernCanvas.style.backgroundColor = '';
     } else {
         ctx.fillStyle = backgroundColorEl.value;
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        fernCanvas.style.backgroundColor = backgroundColorEl.value;
     }
+    ctx.restore();
 }
 
 /* ===================== Get new object alpha ===================== */
@@ -122,12 +121,11 @@ function getNewObjectAlpha() {
 
 /* ===================== Global redraw ===================== */
 function redrawAll(){
-    drawBackground(fernCtx);
-    treeCtx.clearRect(0,0,treeCanvas.width,treeCanvas.height);
+    drawBackground(treeCtx);
 
     for (const op of scene) {
         switch(op.type) {
-            case 'fern':      drawFernInstance(fernCtx, op.data); break;
+            case 'fern':      drawFernInstance(treeCtx, op.data); break;
             case 'tree':      drawTreeFromSegments(treeCtx, op.data); break;
             case 'path':      drawSinglePath(treeCtx, op.data); break;
             case 'snowflake': drawSnowflakes(treeCtx, op.data); break;
@@ -135,13 +133,11 @@ function redrawAll(){
             case 'vine':      drawVines(treeCtx, op.data); break;
             case 'clouds':    drawClouds(treeCtx, op.data); break;
             case 'eraser':
-                applyEraser(fernCtx, op.data);
                 applyEraser(treeCtx, op.data);
                 break;
         }
     }
     treeCtx.globalAlpha = 1.0;
-    fernCtx.globalAlpha = 1.0;
 }
 
 /* ===================== Wind animation ===================== */
@@ -158,26 +154,23 @@ function stopAnimation(){
 }
 
 function redrawAnimatedScene(time) {
-    drawBackground(fernCtx);
-    treeCtx.clearRect(0,0,treeCanvas.width,treeCanvas.height);
+    drawBackground(treeCtx);
 
     for (const op of scene) {
         switch(op.type) {
             case 'tree':      drawAnimatedTree(treeCtx, op.data, time); break;
-            case 'fern':      drawFernInstance(fernCtx, op.data); break;
+            case 'fern':      drawFernInstance(treeCtx, op.data); break;
             case 'path':      drawSinglePath(treeCtx, op.data); break;
             case 'snowflake': drawSnowflakes(treeCtx, op.data); break;
             case 'flower':    drawFlowers(treeCtx, op.data); break;
             case 'vine':      drawVines(treeCtx, op.data); break;
             case 'clouds':    drawClouds(treeCtx, op.data); break;
             case 'eraser':
-                applyEraser(fernCtx, op.data);
                 applyEraser(treeCtx, op.data);
                 break;
         }
     }
     treeCtx.globalAlpha = 1.0;
-    fernCtx.globalAlpha = 1.0;
 }
 
 /* ===================== Utilities ===================== */
@@ -367,7 +360,7 @@ function onPointerEnd(e){
     redrawAll();
   }
 }
-[fernCanvas, treeCanvas, eraserCanvas].forEach(c=>{ c.addEventListener('pointerdown', onPointerDown); c.addEventListener('pointermove', onPointerMove); c.addEventListener('pointerup', onPointerEnd); c.addEventListener('pointercancel', onPointerEnd); c.addEventListener('pointerleave', onPointerEnd); });
+[treeCanvas, eraserCanvas].forEach(c=>{ c.addEventListener('pointerdown', onPointerDown); c.addEventListener('pointermove', onPointerMove); c.addEventListener('pointerup', onPointerEnd); c.addEventListener('pointercancel', onPointerEnd); c.addEventListener('pointerleave', onPointerEnd); });
 
 /* ===================== Spawning ===================== */
 function spawnAt(p){
@@ -390,7 +383,7 @@ function spawnAt(p){
     if (levelEditBox) levelEditBox.style.display='none';
     newOp = {type: 'tree', data: t};
   } else if(mode==='fern'){
-    const sizeBase = Math.min(fernCanvas.width, fernCanvas.height); const seed = nextStampSeed(); const scale = getNonTreeScale();
+    const sizeBase = Math.min(treeCanvas.width, treeCanvas.height); const seed = nextStampSeed(); const scale = getNonTreeScale();
     const f = { cx:p.x, cy:p.y, size: sizeBase * parseFloat(fernSizeEl.value) * scale, points: parseInt(fernPointsEl.value, 10),
       color: pickNonTreeColor(seed), rngSeed: seed, alpha: getNewObjectAlpha() };
     ferns.push(f);
@@ -437,7 +430,7 @@ const randomizeTreeBtn = document.getElementById('randomizeTreeBtn');
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
 if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); });
-if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); redrawAll(); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); });
+if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
 if (loadSessionBtn) loadSessionBtn.addEventListener('click', () => sessionFileInput.click());
@@ -553,12 +546,11 @@ function buildSVG(){
 if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> download(`fractal-forest_${getDateTimeStamp()}.svg`, buildSVG()) );
 function saveCanvasToFile(canvas, name){ const link = document.createElement('a'); link.download = name; link.href = canvas.toDataURL('image/png'); link.click(); }
 function makeSolidBackgroundCanvas(color){ const c = document.createElement('canvas'); c.width = treeCanvas.width; c.height = treeCanvas.height; const cx = c.getContext('2d'); drawBackground(cx); return c; }
-function makeCombinedCanvas(){ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(fernCanvas,0,0); octx.drawImage(treeCanvas,0,0); return out; }
+function makeCombinedCanvas(){ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); return out; }
 if (exportPngLayersBtn) exportPngLayersBtn.addEventListener('click', ()=>{ 
     const stamp = getDateTimeStamp();
     saveCanvasToFile(makeSolidBackgroundCanvas(backgroundColorEl.value), `background_${stamp}.png`); 
-    saveCanvasToFile(fernCanvas, `ferns_${stamp}.png`); 
-    saveCanvasToFile(treeCanvas, `strokes_${stamp}.png`); 
+    saveCanvasToFile(treeCanvas, `artwork_layer_${stamp}.png`); 
     saveCanvasToFile(makeCombinedCanvas(), `combined_${stamp}.png`); 
 });
 
