@@ -32,63 +32,14 @@ let histIndex = -1;
 function snapshot(){
     const sceneCopy = scene.map(op => {
         const dataCopy = JSON.parse(JSON.stringify(op.data));
-
-        // Helper function to round a value to one decimal place
-        const round1 = (val) => Math.round(val * 10) / 10;
-
-        // Optimize all relevant object types
-        switch(op.type) {
-            case 'path':
-            case 'vine':
-            case 'eraser':
-                if (dataCopy.points) {
-                    dataCopy.points = dataCopy.points.map(pt => ({
-                        x: Math.round(pt.x),
-                        y: Math.round(pt.y)
-                    }));
-                }
-                break;
-            case 'mountain':
-                dataCopy.start.x = Math.round(dataCopy.start.x);
-                dataCopy.start.y = Math.round(dataCopy.start.y);
-                dataCopy.end.x = Math.round(dataCopy.end.x);
-                dataCopy.end.y = Math.round(dataCopy.end.y);
-                dataCopy.height = round1(dataCopy.height);
-                break;
-            case 'celestial':
-                dataCopy.cx = Math.round(dataCopy.cx);
-                dataCopy.cy = Math.round(dataCopy.cy);
-                dataCopy.size = round1(dataCopy.size);
-                dataCopy.glow = round1(dataCopy.glow);
-                break;
-            case 'tree':
-                dataCopy.x = Math.round(dataCopy.x);
-                dataCopy.y = Math.round(dataCopy.y);
-                dataCopy.baseLen = round1(dataCopy.baseLen);
-                break;
-            case 'fern':
-                dataCopy.cx = Math.round(dataCopy.cx);
-                dataCopy.cy = Math.round(dataCopy.cy);
-                break;
-            case 'snowflake':
-                dataCopy.cx = Math.round(dataCopy.cx);
-                dataCopy.cy = Math.round(dataCopy.cy);
-                break;
-            case 'flower':
-                dataCopy.cx = Math.round(dataCopy.cx);
-                dataCopy.cy = Math.round(dataCopy.cy);
-                break;
-            case 'clouds':
-                 dataCopy.cx = Math.round(dataCopy.cx);
-                 dataCopy.cy = Math.round(dataCopy.cy);
-                 if (dataCopy.circles) {
-                    dataCopy.circles = dataCopy.circles.map(c => ({
-                        r: round1(c.r),
-                        w: round1(c.w),
-                        color: c.color
-                    }));
-                 }
-                break;
+        // Optimize paths and vines by rounding coordinates
+        if (op.type === 'path' || op.type === 'vine' || op.type === 'eraser') {
+            if (dataCopy.points) {
+                dataCopy.points = dataCopy.points.map(pt => ({
+                    x: Math.round(pt.x),
+                    y: Math.round(pt.y)
+                }));
+            }
         }
         return { type: op.type, data: dataCopy };
     });
@@ -399,6 +350,7 @@ function createFernFromUI(cx, cy) {
         alpha: getNewObjectAlpha(),
         isSpaceFern: spaceFernsEl.checked
     };
+    if (f.isSpaceFern && typeof gtag === 'function') gtag('event', 'use_feature', { 'feature_name': 'space_ferns' });
     return f;
 }
 
@@ -417,6 +369,7 @@ function hitTestBranch(p){
       if(dx*dx+dy*dy<=tol2) {
           selectedTreeIndex = trees.indexOf(t);
           selectedLevelIndex = level;
+          if (typeof gtag === 'function') gtag('event', 'select_branch');
           return;
       }
     }
@@ -514,6 +467,7 @@ function onPointerEnd(e){
       if (!isAnimating()) redrawAll();
       eraserCtx.clearRect(0,0,eraserCanvas.width, eraserCanvas.height);
       dragStartPoint = null;
+      if (typeof gtag === 'function') gtag('event', 'create_object', { 'type': 'mountain' });
   }
   
   drawing = false;
@@ -553,6 +507,8 @@ function spawnAt(p){
       currentStroke = {size: parseInt(eraserSizeEl.value, 10), points:[p]};
       return;
   }
+
+  if (typeof gtag === 'function') gtag('event', 'create_object', { 'type': mode });
 
   if(mode==='tree'){
     const t = createTreeFromUI(p.x,p.y);
@@ -602,7 +558,6 @@ const redoBtn = document.getElementById('redoBtn');
 const clearBtn= document.getElementById('clearBtn');
 const saveBtn = document.getElementById('saveBtn');
 const exportSvgBtn = document.getElementById('exportSvgBtn');
-const exportPngLayersBtn = document.getElementById('exportPngLayersBtn');
 const exportSessionBtn = document.getElementById('exportSessionBtn');
 const loadSessionBtn = document.getElementById('loadSessionBtn');
 const sessionFileInput = document.getElementById('sessionFileInput');
@@ -610,8 +565,8 @@ const randomizeTreeBtn = document.getElementById('randomizeTreeBtn');
 
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
-if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; mountains=[]; celestials=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); checkSessionSize(); });
-if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); });
+if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; mountains=[]; celestials=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); checkSessionSize(); if (typeof gtag === 'function') gtag('event', 'clear_canvas'); });
+if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); if (typeof gtag === 'function') gtag('event', 'save_artwork', { 'format': 'png' }); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
 if (loadSessionBtn) loadSessionBtn.addEventListener('click', () => sessionFileInput.click());
@@ -632,6 +587,7 @@ if (randomizeTreeBtn) {
         randomizeSlider(angleRandEl);
         randomizeSlider(widthScaleEl);
         updateUIValues();
+        if (typeof gtag === 'function') gtag('event', 'use_feature', { 'feature_name': 'randomize_tree' });
     });
 }
 
@@ -639,6 +595,8 @@ function playHistory() {
     if (isPlaying || history.length < 2) return;
     isPlaying = true;
     playbackBtn.disabled = true;
+
+    if (typeof gtag === 'function') gtag('event', 'playback_history');
 
     let i = 0;
     function nextFrame() {
@@ -659,6 +617,7 @@ function playHistory() {
 
 function exportSession() {
     try {
+        if (typeof gtag === 'function') gtag('event', 'save_session');
         if (typeof pako === 'undefined') {
             alert('Compression library (pako) is not available. Please check your internet connection.');
             return;
@@ -703,6 +662,7 @@ function loadSession(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
+            if (typeof gtag === 'function') gtag('event', 'load_session');
             if (typeof pako === 'undefined') {
                 alert('Compression library (pako) is not loaded. Cannot load compressed session.');
                 return;
@@ -760,7 +720,7 @@ function buildSVG(){
   parts.push(`<g id="trees" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const t of trees){ const buckets = new Map(); for (const seg of t.segments){ if (!buckets.has(seg.level)) buckets.set(seg.level, []); buckets.get(seg.level).push(seg); } parts.push(`<g class="tree">`); for (const [lvl, arr] of buckets){ const stroke = t.branchColors[lvl] || '#ffffff', la = t.levelAlphas[lvl] ?? 1, op = Math.max(0, Math.min(1, la)); parts.push(`<g data-level="${lvl}" stroke="${escapeAttr(stroke)}" stroke-opacity="${op}" fill="none">`); for (const seg of arr){ const width = Math.max(0.1, (t.baseWidth || 12) * Math.pow(t.widthScale ?? 0.68, seg.level)); parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}" stroke-width="${width}"/>`); } parts.push(`</g>`); } parts.push(`</g>`); } parts.push(`</g>`);
   parts.push(`</svg>`); return parts.join('\n');
 }
-if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> download(`fractal-forest_${getDateTimeStamp()}.svg`, buildSVG()) );
+if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> { download(`fractal-forest_${getDateTimeStamp()}.svg`, buildSVG()); if (typeof gtag === 'function') gtag('event', 'save_artwork', { 'format': 'svg' }); });
 function saveCanvasToFile(canvas, name){ const link = document.createElement('a'); link.download = name; link.href = canvas.toDataURL('image/png'); link.click(); }
 function makeSolidBackgroundCanvas(color){ const c = document.createElement('canvas'); c.width = treeCanvas.width; c.height = treeCanvas.height; const cx = c.getContext('2d'); drawBackground(cx); return c; }
 function makeCombinedCanvas(){ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); return out; }
@@ -768,7 +728,8 @@ if (exportPngLayersBtn) exportPngLayersBtn.addEventListener('click', ()=>{
     const stamp = getDateTimeStamp();
     saveCanvasToFile(makeSolidBackgroundCanvas(backgroundColorEl.value), `background_${stamp}.png`); 
     saveCanvasToFile(treeCanvas, `artwork_layer_${stamp}.png`); 
-    saveCanvasToFile(makeCombinedCanvas(), `combined_${stamp}.png`); 
+    saveCanvasToFile(makeCombinedCanvas(), `combined_${stamp}.png`);
+    if (typeof gtag === 'function') gtag('event', 'save_artwork', { 'format': 'layers' });
 });
 
 /* ===================== Keyboard shortcuts ===================== */
