@@ -13,6 +13,8 @@ let scene = [];
 let trees = [];
 let ferns = [];
 let paths = [];
+let mountains = [];
+let celestials = [];
 let snowflakes = [];
 let flowers = [];
 let vines = [];
@@ -20,7 +22,7 @@ let clouds = [];
 let eraserStrokes = [];
 let selectedTreeIndex = null;
 let selectedLevelIndex = null;
-let drawing = false, lastP = null, currentStroke = null, captureEl = null;
+let drawing = false, lastP = null, currentStroke = null, captureEl = null, dragStartPoint = null;
 let dragSpacing = 4;
 let branchPalette = [];
 
@@ -30,14 +32,76 @@ let histIndex = -1;
 function snapshot(){
     const sceneCopy = scene.map(op => {
         const dataCopy = JSON.parse(JSON.stringify(op.data));
+
+        // Helper function to round a value to one decimal place
+        const round1 = (val) => Math.round(val * 10) / 10;
+
+        // Optimize all relevant object types
+        switch(op.type) {
+            case 'path':
+            case 'vine':
+            case 'eraser':
+                if (dataCopy.points) {
+                    dataCopy.points = dataCopy.points.map(pt => ({
+                        x: Math.round(pt.x),
+                        y: Math.round(pt.y)
+                    }));
+                }
+                break;
+            case 'mountain':
+                dataCopy.start.x = Math.round(dataCopy.start.x);
+                dataCopy.start.y = Math.round(dataCopy.start.y);
+                dataCopy.end.x = Math.round(dataCopy.end.x);
+                dataCopy.end.y = Math.round(dataCopy.end.y);
+                dataCopy.height = round1(dataCopy.height);
+                break;
+            case 'celestial':
+                dataCopy.cx = Math.round(dataCopy.cx);
+                dataCopy.cy = Math.round(dataCopy.cy);
+                dataCopy.size = round1(dataCopy.size);
+                dataCopy.glow = round1(dataCopy.glow);
+                break;
+            case 'tree':
+                dataCopy.x = Math.round(dataCopy.x);
+                dataCopy.y = Math.round(dataCopy.y);
+                dataCopy.baseLen = round1(dataCopy.baseLen);
+                break;
+            case 'fern':
+                dataCopy.cx = Math.round(dataCopy.cx);
+                dataCopy.cy = Math.round(dataCopy.cy);
+                break;
+            case 'snowflake':
+                dataCopy.cx = Math.round(dataCopy.cx);
+                dataCopy.cy = Math.round(dataCopy.cy);
+                break;
+            case 'flower':
+                dataCopy.cx = Math.round(dataCopy.cx);
+                dataCopy.cy = Math.round(dataCopy.cy);
+                break;
+            case 'clouds':
+                 dataCopy.cx = Math.round(dataCopy.cx);
+                 dataCopy.cy = Math.round(dataCopy.cy);
+                 if (dataCopy.circles) {
+                    dataCopy.circles = dataCopy.circles.map(c => ({
+                        r: round1(c.r),
+                        w: round1(c.w),
+                        color: c.color
+                    }));
+                 }
+                break;
+        }
         return { type: op.type, data: dataCopy };
     });
+
     return {
         bg1: backgroundColorEl.value,
         bg2: backgroundColor2El.value,
         gradient: enableGradientEl.checked,
         palette: branchPalette.slice(),
-        scene: sceneCopy
+        scene: sceneCopy,
+        cloudAnim: animateCloudsEl.checked,
+        cloudSpeed: cloudSpeedEl.value,
+        cloudDrift: cloudDriftEl.value,
     };
 }
 function pushHistory(){
@@ -50,17 +114,25 @@ function restoreFrom(state){
   backgroundColor2El.value = state.bg2 || '#071022';
   enableGradientEl.checked = state.gradient || false;
   
+  animateCloudsEl.checked = state.cloudAnim || false;
+  cloudSpeedEl.value = state.cloudSpeed || '0.1';
+  cloudDriftEl.value = state.cloudDrift || '20';
+
   if(gradientControlsEl) gradientControlsEl.style.display = enableGradientEl.checked ? 'block' : 'none';
+  if(cloudAnimControlsEl) cloudAnimControlsEl.style.display = animateCloudsEl.checked ? 'block' : 'none';
 
   branchPalette = (state.palette && state.palette.length===MAX_LEVELS)
     ? state.palette.slice() : ensureTreeDefaults(MAX_LEVELS);
   refreshPaletteUI();
+  updateUIValues();
 
   scene = state.scene.map(op => ({...op}));
 
   trees = scene.filter(op => op.type === 'tree').map(op => op.data);
   ferns = scene.filter(op => op.type === 'fern').map(op => op.data);
   paths = scene.filter(op => op.type === 'path').map(op => op.data);
+  mountains = scene.filter(op => op.type === 'mountain').map(op => op.data);
+  celestials = scene.filter(op => op.type === 'celestial').map(op => op.data);
   snowflakes = scene.filter(op => op.type === 'snowflake').map(op => op.data);
   flowers = scene.filter(op => op.type === 'flower').map(op => op.data);
   vines = scene.filter(op => op.type === 'vine').map(op => op.data);
@@ -69,6 +141,7 @@ function restoreFrom(state){
 
   selectedTreeIndex = null; selectedLevelIndex = null;
   if (isAnimating()) { /* next frame draws */ } else { redrawAll(); }
+  checkSessionSize();
 }
 function undo(){ if(histIndex>0){ histIndex--; restoreFrom(history[histIndex]); } }
 function redo(){ if(histIndex<history.length-1){ histIndex++; restoreFrom(history[histIndex]); } }
@@ -128,6 +201,8 @@ function redrawAll(){
             case 'fern':      drawFernInstance(treeCtx, op.data); break;
             case 'tree':      drawTreeFromSegments(treeCtx, op.data); break;
             case 'path':      drawSinglePath(treeCtx, op.data); break;
+            case 'mountain':  drawMountainRange(treeCtx, op.data); break;
+            case 'celestial': drawCelestialBody(treeCtx, op.data); break;
             case 'snowflake': drawSnowflakes(treeCtx, op.data); break;
             case 'flower':    drawFlowers(treeCtx, op.data); break;
             case 'vine':      drawVines(treeCtx, op.data); break;
@@ -142,7 +217,7 @@ function redrawAll(){
 
 /* ===================== Wind animation ===================== */
 let animReq = null;
-function isAnimating(){ return animateWindEl && animateWindEl.checked; }
+function isAnimating(){ return (animateWindEl && animateWindEl.checked) || (animateCloudsEl && animateCloudsEl.checked); }
 function startAnimation(){
   if (animReq) return;
   const tick = (now)=>{ redrawAnimatedScene(now/1000); animReq = requestAnimationFrame(tick); };
@@ -158,13 +233,19 @@ function redrawAnimatedScene(time) {
 
     for (const op of scene) {
         switch(op.type) {
-            case 'tree':      drawAnimatedTree(treeCtx, op.data, time); break;
+            case 'tree':      
+                (animateWindEl && animateWindEl.checked) ? drawAnimatedTree(treeCtx, op.data, time) : drawTreeFromSegments(treeCtx, op.data);
+                break;
+            case 'clouds':    
+                (animateCloudsEl && animateCloudsEl.checked) ? drawAnimatedClouds(treeCtx, op.data, time) : drawClouds(treeCtx, op.data);
+                break;
             case 'fern':      drawFernInstance(treeCtx, op.data); break;
             case 'path':      drawSinglePath(treeCtx, op.data); break;
+            case 'mountain':  drawMountainRange(treeCtx, op.data); break;
+            case 'celestial': drawCelestialBody(treeCtx, op.data); break;
             case 'snowflake': drawSnowflakes(treeCtx, op.data); break;
             case 'flower':    drawFlowers(treeCtx, op.data); break;
             case 'vine':      drawVines(treeCtx, op.data); break;
-            case 'clouds':    drawClouds(treeCtx, op.data); break;
             case 'eraser':
                 applyEraser(treeCtx, op.data);
                 break;
@@ -193,6 +274,34 @@ function getDateTimeStamp() {
     const minute = String(now.getMinutes()).padStart(2, '0');
     const second = String(now.getSeconds()).padStart(2, '0');
     return `${year}_${month}_${day}_${hour}_${minute}_${second}`;
+}
+
+function createMountainFromUI(start, end) {
+    const mtn = {
+        start: start,
+        end: end,
+        detail: parseInt(mountainDetailEl.value, 10),
+        height: parseFloat(mountainHeightEl.value),
+        jaggedness: parseFloat(mountainJaggednessEl.value),
+        isSmooth: mountainSmoothEl.checked,
+        color: pickNonTreeColor(nextStampSeed()),
+        alpha: getNewObjectAlpha(),
+        points: []
+    };
+    buildMountainRange(mtn);
+    return mtn;
+}
+
+function createCelestialFromUI(cx, cy) {
+    const body = {
+        cx: cx,
+        cy: cy,
+        size: parseFloat(celestialSizeEl.value),
+        glow: parseFloat(celestialGlowEl.value),
+        color: pickNonTreeColor(nextStampSeed()),
+        alpha: getNewObjectAlpha()
+    };
+    return body;
 }
 
 function createTreeFromUI(x,y){
@@ -277,14 +386,34 @@ function createCloudFromUI(cx, cy){
   return { cx, cy, circles, blur, shadowColor, alpha: getNewObjectAlpha() };
 }
 
+function createFernFromUI(cx, cy) {
+    const sizeBase = Math.min(treeCanvas.width, treeCanvas.height);
+    const scale = getNonTreeScale();
+    const f = { 
+        cx: cx, 
+        cy: cy, 
+        size: sizeBase * parseFloat(fernSizeEl.value) * scale, 
+        points: parseInt(fernPointsEl.value, 10),
+        color: pickNonTreeColor(nextStampSeed()), 
+        rngSeed: nextStampSeed(), 
+        alpha: getNewObjectAlpha(),
+        isSpaceFern: spaceFernsEl.checked
+    };
+    return f;
+}
+
 function hitTestBranch(p){
   const tol=6, tol2=tol*tol;
   for(let ti=trees.length-1; ti>=0; ti--){
     const t = trees[ti];
     for(const seg of t.segments){
-      const {x1,y1,x2,y2,level}=seg; const vx=x2-x1, vy=y2-y1, wx=p.x-x1, wy=p.y-y1;
-      const c1=vx*wx+vy*wy, c2=vx*vx+vy*vy; let b = (c2>0)? c1/c2 : 0; b=Math.max(0,Math.min(1,b));
-      const px=x1+b*vx, py=y1+b*vy; const dx=p.x-px, dy=p.y-py;
+      const {x1,y1,x2,y2,level}=seg; 
+      const vx=x2-x1, vy=y2-y1, wx=p.x-x1, wy=p.y-y1;
+      const c1=vx*wx+vy*wy, c2=vx*vx+vy*vy; 
+      let b = (c2>0)? c1/c2 : 0; 
+      b=Math.max(0,Math.min(1,b));
+      const px=x1+b*vx, py=y1+b*vy; 
+      const dx=p.x-px, dy=p.y-py;
       if(dx*dx+dy*dy<=tol2) {
           selectedTreeIndex = trees.indexOf(t);
           selectedLevelIndex = level;
@@ -300,25 +429,53 @@ function hitTestBranch(p){
 function onPointerDown(e){
   e.preventDefault();
   if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); captureEl = e.currentTarget; } catch {} }
-  drawing = true; const p = getP(e); lastP = p;
+  const p = getP(e);
+  lastP = p;
   const mode = modeSelect.value;
+  
+  if (mode === 'mountain') {
+    drawing = true;
+    dragStartPoint = p;
+    return;
+  }
+  
+  drawing = true;
   if (mode === 'eraser' || mode === 'path') {
-    eraserCtx.clearRect(0,0,eraserCanvas.width,eraserCanvas.height); spawnAt(p);
+    eraserCtx.clearRect(0,0,eraserCanvas.width,eraserCanvas.height); 
+    spawnAt(p);
   } else if (mode === 'tree') {
     hitTestBranch(p);
-    if (selectedTreeIndex !== null) {
-      if (levelEditBox){
-        levelEditBox.style.display='block'; editingLevelText.textContent = 'Level ' + (selectedLevelIndex+1);
-        levelAlphaEl.value = trees[selectedTreeIndex].levelAlphas[selectedLevelIndex] ?? 1;
-        const lab = document.getElementById('levelAlphaLabel'); if (lab) lab.textContent = Number(levelAlphaEl.value).toFixed(2);
-      }
-      if (!isAnimating()) redrawAll();
-    } else { spawnAt(p); }
-  } else { spawnAt(p); }
+    if (selectedTreeIndex === null) { 
+        spawnAt(p); 
+    } else {
+        if (levelEditBox){
+            levelEditBox.style.display='block'; editingLevelText.textContent = 'Level ' + (selectedLevelIndex+1);
+            levelAlphaEl.value = trees[selectedTreeIndex].levelAlphas[selectedLevelIndex] ?? 1;
+            const lab = document.getElementById('levelAlphaLabel'); if (lab) lab.textContent = Number(levelAlphaEl.value).toFixed(2);
+        }
+        if (!isAnimating()) redrawAll();
+        drawing = false;
+    }
+  } else { 
+    spawnAt(p); 
+  }
 }
 function onPointerMove(e){
   if (!drawing) return;
-  const p = getP(e); const mode = modeSelect.value;
+  const p = getP(e); 
+  const mode = modeSelect.value;
+
+  if (mode === 'mountain' && dragStartPoint) {
+      eraserCtx.clearRect(0,0,eraserCanvas.width, eraserCanvas.height);
+      eraserCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      eraserCtx.lineWidth = 1;
+      eraserCtx.beginPath();
+      eraserCtx.moveTo(dragStartPoint.x, dragStartPoint.y);
+      eraserCtx.lineTo(p.x, p.y);
+      eraserCtx.stroke();
+      return;
+  }
+
   if (mode === 'eraser' || mode === 'path') {
     if (!currentStroke) return;
     currentStroke.points.push(p);
@@ -345,9 +502,23 @@ function onPointerMove(e){
 }
 function onPointerEnd(e){
   if (!drawing) return;
+  const p = getP(e);
+  const mode = modeSelect.value;
+  
+  if (mode === 'mountain' && dragStartPoint) {
+      const mtn = createMountainFromUI(dragStartPoint, p);
+      mountains.push(mtn);
+      scene.push({type: 'mountain', data: mtn});
+      pushHistory();
+      checkSessionSize();
+      if (!isAnimating()) redrawAll();
+      eraserCtx.clearRect(0,0,eraserCanvas.width, eraserCanvas.height);
+      dragStartPoint = null;
+  }
+  
   drawing = false;
   if (captureEl && captureEl.releasePointerCapture) { try { captureEl.releasePointerCapture(e.pointerId); } catch {} captureEl = null; }
-  const mode = modeSelect.value;
+  
   if ((mode === 'eraser' || mode === 'path') && currentStroke){
     const op = { type: mode, data: currentStroke };
     scene.push(op);
@@ -368,7 +539,14 @@ function spawnAt(p){
   let newOp = null;
 
   if(mode==='path'){
-      currentStroke = { points:[p], strokeWidth: parseInt(pathWidthEl.value, 10), alpha: getNewObjectAlpha(), colorMode: 'single', singleColor: pickNonTreeColor(nextStampSeed()) };
+      currentStroke = { 
+        points:[p], 
+        strokeWidth: parseInt(pathWidthEl.value, 10), 
+        alpha: getNewObjectAlpha(),
+        singleColor: singleColorEl.value,
+        isAirbrush: pathAirbrushEl.checked,
+        airbrushSize: parseInt(airbrushSizeEl.value, 10)
+      };
       drawSinglePath(eraserCtx, currentStroke);
       return;
   } else if(mode==='eraser') {
@@ -383,9 +561,7 @@ function spawnAt(p){
     if (levelEditBox) levelEditBox.style.display='none';
     newOp = {type: 'tree', data: t};
   } else if(mode==='fern'){
-    const sizeBase = Math.min(treeCanvas.width, treeCanvas.height); const seed = nextStampSeed(); const scale = getNonTreeScale();
-    const f = { cx:p.x, cy:p.y, size: sizeBase * parseFloat(fernSizeEl.value) * scale, points: parseInt(fernPointsEl.value, 10),
-      color: pickNonTreeColor(seed), rngSeed: seed, alpha: getNewObjectAlpha() };
+    const f = createFernFromUI(p.x, p.y);
     ferns.push(f);
     newOp = {type: 'fern', data: f};
   } else if(mode==='snowflake'){
@@ -404,6 +580,10 @@ function spawnAt(p){
     const c = createCloudFromUI(p.x,p.y);
     clouds.push(c);
     newOp = {type: 'clouds', data: c};
+  } else if(mode==='celestial'){
+    const body = createCelestialFromUI(p.x, p.y);
+    celestials.push(body);
+    newOp = {type: 'celestial', data: body};
   }
   
   if (newOp) {
@@ -412,6 +592,7 @@ function spawnAt(p){
       if (!isAnimating()) {
         redrawAll();
       }
+      checkSessionSize();
   }
 }
 
@@ -429,7 +610,7 @@ const randomizeTreeBtn = document.getElementById('randomizeTreeBtn');
 
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
-if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); });
+if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; mountains=[]; celestials=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); checkSessionSize(); });
 if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
@@ -472,30 +653,47 @@ function playHistory() {
         setTimeout(nextFrame, delay);
     }
     
-    restoreFrom({ bg1: '#000000', bg2: '#071022', gradient: false, palette: branchPalette, scene: [] });
+    restoreFrom({ bg1: '#000000', bg2: '#071022', gradient: false, palette: branchPalette, scene: [], cloudAnim: false, cloudSpeed: '0.1', cloudDrift: '20' });
     setTimeout(nextFrame, 500);
 }
 
 function exportSession() {
-    const parts = [];
-    parts.push('{"history":[');
-    history.forEach((state, index) => {
-        parts.push(JSON.stringify(state));
-        if (index < history.length - 1) {
-            parts.push(',');
+    try {
+        if (typeof pako === 'undefined') {
+            alert('Compression library (pako) is not available. Please check your internet connection.');
+            return;
         }
-    });
-    parts.push('],"histIndex":');
-    parts.push(histIndex.toString());
-    parts.push('}');
 
-    const blob = new Blob(parts, {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fractal-session_${getDateTimeStamp()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+        const deflate = new pako.Deflate({ gzip: true });
+
+        deflate.push('{\n  "history": [\n');
+        history.forEach((state, index) => {
+            deflate.push(JSON.stringify(state, null, 2));
+            if (index < history.length - 1) {
+                deflate.push(',\n');
+            }
+        });
+        deflate.push('\n  ],\n  "histIndex": ');
+        deflate.push(histIndex.toString());
+        deflate.push('\n}');
+
+        deflate.push([], true); // Finalize the stream
+
+        if (deflate.err) {
+            throw new Error(deflate.msg);
+        }
+        const compressed = deflate.result;
+
+        const blob = new Blob([compressed], { type: "application/gzip" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fractal-session_${getDateTimeStamp()}.json.gz`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert("Error compressing session file: " + err.message);
+    }
 }
 
 function loadSession(event) {
@@ -505,7 +703,21 @@ function loadSession(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const sessionData = JSON.parse(e.target.result);
+            if (typeof pako === 'undefined') {
+                alert('Compression library (pako) is not loaded. Cannot load compressed session.');
+                return;
+            }
+            let jsonString;
+            
+            if (file.name.endsWith('.gz')) {
+                const compressed = new Uint8Array(e.target.result);
+                const decompressed = pako.ungzip(compressed, { to: 'string' });
+                jsonString = decompressed;
+            } else {
+                jsonString = e.target.result;
+            }
+            
+            const sessionData = JSON.parse(jsonString);
             if (sessionData.history && typeof sessionData.histIndex === 'number') {
                 history.length = 0;
                 Array.prototype.push.apply(history, sessionData.history);
@@ -515,10 +727,15 @@ function loadSession(event) {
                 alert('Invalid session file format.');
             }
         } catch (err) {
-            alert('Error parsing session file: ' + err.message);
+            alert('Error parsing or decompressing session file: ' + err.message);
         }
     };
-    reader.readAsText(file);
+
+    if (file.name.endsWith('.gz') || file.type === "application/gzip") {
+        reader.readAsArrayBuffer(file);
+    } else {
+        reader.readAsText(file);
+    }
     event.target.value = '';
 }
 
@@ -567,8 +784,11 @@ window.addEventListener('keydown', (e)=>{
   updateNonTreeColorUI();
   resizeCanvases();
   
-  if (animateWindEl) animateWindEl.addEventListener('change', ()=>{ isAnimating() ? startAnimation() : stopAnimation(); });
-  [windAmpEl, windSpeedEl].filter(Boolean).forEach(el=> el.addEventListener('input', ()=> { if (isAnimating() && !animReq) startAnimation(); }) );
+  const animControls = [animateWindEl, windAmpEl, windSpeedEl, animateCloudsEl, cloudSpeedEl, cloudDriftEl];
+  animControls.filter(Boolean).forEach(el => {
+      el.addEventListener('change', () => { isAnimating() ? startAnimation() : stopAnimation(); });
+      el.addEventListener('input', () => { if (isAnimating() && !animReq) startAnimation(); });
+  });
 
   history.length=0; 
   histIndex=-1; 

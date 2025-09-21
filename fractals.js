@@ -96,6 +96,66 @@ function Perlin(seed=1){
 }
 
 /* ===================== Object Build Functions ===================== */
+function buildMountainRange(mtn) {
+    let points = [mtn.start, mtn.end];
+    let displacement = mtn.height;
+    
+    for (let i = 0; i < mtn.detail; i++) {
+        const newPoints = [points[0]];
+        for (let j = 0; j < points.length - 1; j++) {
+            const p1 = points[j];
+            const p2 = points[j+1];
+
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+
+            const offset = (Math.random() - 0.5) * displacement;
+            newPoints.push({ x: midX, y: midY + offset });
+            newPoints.push(p2);
+        }
+        points = newPoints;
+        displacement *= mtn.jaggedness;
+    }
+    mtn.points = points;
+}
+
+// ADD a new draw function to create mountain ranges
+function drawMountainRange(ctx, mtn) {
+    if (!mtn.points || mtn.points.length < 2) return;
+    ctx.save();
+    ctx.globalAlpha = mtn.alpha ?? 1.0;
+    ctx.fillStyle = mtn.color;
+    
+    ctx.beginPath();
+    ctx.moveTo(mtn.start.x, ctx.canvas.height);
+    ctx.lineTo(mtn.start.x, mtn.start.y);
+
+    if (mtn.isSmooth) {
+        // Use quadratic curves for a smooth spline effect
+        let pts = mtn.points;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p1 = pts[i];
+            const p2 = pts[i+1];
+            const xc = (p1.x + p2.x) / 2;
+            const yc = (p1.y + p2.y) / 2;
+            // The curve starts from the previous point, uses the current point as a control, and ends at the midpoint
+            ctx.quadraticCurveTo(p1.x, p1.y, xc, yc);
+        }
+        // Draw the final segment to the end point
+        ctx.lineTo(mtn.end.x, mtn.end.y);
+    } else {
+        // Original jagged line logic
+        for (const point of mtn.points) {
+            ctx.lineTo(point.x, point.y);
+        }
+    }
+
+    ctx.lineTo(mtn.end.x, ctx.canvas.height);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
 function buildTreeSegments(tree){
   const rand = mulberry32(tree.rngSeed);
   tree.segments = [];
@@ -131,13 +191,13 @@ function buildTreeSegments(tree){
 }
 
 function buildKochSnowflake(sf){
+  const iter = Math.max(0, Math.min(6, sf.iter | 0));
   const side = sf.size * 2;
   const h = Math.sqrt(3)/2 * side;
   const A = {x: sf.cx,           y: sf.cy - (2/3)*h};
   const B = {x: sf.cx + side/2,  y: sf.cy + (1/3)*h};
   const C = {x: sf.cx - side/2,  y: sf.cy + (1/3)*h};
   let edges = [ {x1:A.x, y1:A.y, x2:B.x, y2:B.y}, {x1:B.x, y1:B.y, x2:C.x, y2:C.y}, {x1:C.x, y1:C.y, x2:A.x, y2:A.y} ];
-  const iter = Math.max(0, Math.min(6, sf.iter | 0));
   function subdivide(e){
     const {x1,y1,x2,y2} = e;
     const dx = x2 - x1, dy = y2 - y1;
@@ -212,33 +272,58 @@ function buildVinePolyline(v){
 }
 
 /* ===================== Draw Functions ===================== */
+function drawCelestialBody(ctx, body) {
+    ctx.save();
+    ctx.globalAlpha = body.alpha ?? 1.0;
+
+    // The glow is a shadow of the same color as the fill
+    ctx.fillStyle = body.color;
+    ctx.shadowColor = body.color;
+    ctx.shadowBlur = body.glow;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    ctx.beginPath();
+    ctx.arc(body.cx, body.cy, body.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
 function drawSinglePath(ctx, p) {
     if (!p || !p.points || p.points.length === 0) return;
+    
+    ctx.save();
+    
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.globalAlpha = p.alpha ?? 1.0;
     ctx.lineWidth = p.strokeWidth;
-    if (p.colorMode === 'single' || p.points.length < 2) {
+    
+    if (p.isAirbrush) {
         ctx.strokeStyle = p.singleColor;
-        ctx.beginPath();
-        ctx.moveTo(p.points[0].x, p.points[0].y);
-        for (let i = 1; i < p.points.length; i++) {
-            ctx.lineTo(p.points[i].x, p.points[i].y);
-        }
-        if (p.points.length === 1) { // Draw a dot
-            ctx.lineTo(p.points[0].x + 0.5, p.points[0].y + 0.5);
-        }
-        ctx.stroke();
-    } else { // cycle
-        if (!branchPalette || branchPalette.length === 0) return;
-        for (let i = 0; i < p.points.length - 1; i++) {
-            ctx.strokeStyle = branchPalette[i % branchPalette.length];
-            ctx.beginPath();
-            ctx.moveTo(p.points[i].x, p.points[i].y);
-            ctx.lineTo(p.points[i + 1].x, p.points[i + 1].y);
-            ctx.stroke();
-        }
+        ctx.shadowColor = p.singleColor;
+        ctx.shadowBlur = p.airbrushSize;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+    } else {
+        ctx.strokeStyle = p.singleColor;
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
     }
+
+    ctx.beginPath();
+    ctx.moveTo(p.points[0].x, p.points[0].y);
+    for (let i = 1; i < p.points.length; i++) {
+        ctx.lineTo(p.points[i].x, p.points[i].y);
+    }
+    if (p.points.length === 1) {
+        ctx.lineTo(p.points[0].x + 0.5, p.points[0].y + 0.5);
+    }
+    ctx.stroke();
+
+    ctx.restore();
 }
 
 function drawClouds(ctx, c){
@@ -248,6 +333,31 @@ function drawClouds(ctx, c){
     for (const k of c.circles){
       ctx.strokeStyle = k.color || '#ffffff'; ctx.lineWidth   = k.w || 2;
       ctx.beginPath(); ctx.arc(c.cx, c.cy, Math.max(0.5, k.r), 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function drawAnimatedClouds(ctx, c, time) {
+    const speed = parseFloat(cloudSpeedEl.value);
+    const amp = parseFloat(cloudDriftEl.value);
+    const phase = (c.cx / ctx.canvas.width) * Math.PI * 2;
+    const offsetX = amp * Math.sin(time * speed + phase);
+
+    ctx.save();
+    ctx.globalAlpha = c.alpha ?? 1.0;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = c.blur || 0;
+    ctx.shadowOffsetX = c.blur || 8;
+    ctx.shadowOffsetY = c.blur || 8;
+    ctx.shadowColor = c.shadowColor || '#555';
+
+    for (const k of c.circles) {
+        ctx.strokeStyle = k.color || '#ffffff';
+        ctx.lineWidth = k.w || 2;
+        ctx.beginPath();
+        ctx.arc(c.cx + offsetX, c.cy, Math.max(0.5, k.r), 0, Math.PI * 2);
+        ctx.stroke();
     }
     ctx.restore();
 }
@@ -323,12 +433,41 @@ function drawTreeFromSegments(ctx, tree){
 
 function drawFernInstance(ctx, f){
   const rand = mulberry32(f.rngSeed);
-  ctx.fillStyle = f.color || '#58c470'; ctx.globalAlpha = f.alpha ?? 1.0;
+  ctx.fillStyle = f.color || '#58c470'; 
+  ctx.globalAlpha = f.alpha ?? 1.0;
+
+  let c = {
+    p1: 0.01, a2: 0.85, b2: 0.04, c2: -0.04, d2: 0.85, f2: 1.6,
+    p2: 0.86, a3: 0.2,  b3: -0.26, c3: 0.23, d3: 0.22, f3: 1.6,
+    p3: 0.93, a4: -0.15,b4: 0.28, c4: 0.26, d4: 0.24, f4: 0.44
+  };
+
+  if (f.isSpaceFern) {
+    const jitter = () => (rand() - 0.5) * 0.1; 
+    c = {
+        p1: 0.01, a2: 0.85 + jitter(), b2: 0.04 + jitter(), c2: -0.04 + jitter(), d2: 0.85 + jitter(), f2: 1.6 + jitter(),
+        p2: 0.86, a3: 0.2 + jitter(),  b3: -0.26 + jitter(), c3: 0.23 + jitter(), d3: 0.22 + jitter(), f3: 1.6 + jitter(),
+        p3: 0.93, a4: -0.15 + jitter(),b4: 0.28 + jitter(), c4: 0.26 + jitter(), d4: 0.24 + jitter(), f4: 0.44 + jitter()
+    };
+  }
+
   let x=0,y=0;
   for(let i=0;i<f.points;i++){
-    const r = rand(); let nx, ny;
-    if (r<0.01){ nx=0; ny=0.16*y; } else if (r<0.86){ nx=0.85*x + 0.04*y; ny=-0.04*x + 0.85*y + 1.6; }
-    else if (r<0.93){ nx=0.2*x - 0.26*y; ny=0.23*x + 0.22*y + 1.6; } else { nx=-0.15*x + 0.28*y; ny=0.26*x + 0.24*y + 0.44; }
+    const r = rand(); 
+    let nx, ny;
+    if (r < c.p1){
+        nx=0; 
+        ny=0.16*y;
+    } else if (r < c.p2){
+        nx = c.a2*x + c.b2*y; 
+        ny = c.c2*x + c.d2*y + c.f2;
+    } else if (r < c.p3){
+        nx = c.a3*x + c.b3*y; 
+        ny = c.c3*x + c.d3*y + c.f3;
+    } else {
+        nx = c.a4*x + c.b4*y; 
+        ny = c.c4*x + c.d4*y + c.f4;
+    }
     x=nx; y=ny;
     const px = Math.round(f.cx + x*f.size), py = Math.round(f.cy - y*f.size);
     ctx.fillRect(px,py,1,1);

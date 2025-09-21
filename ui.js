@@ -29,9 +29,30 @@ const treeBlossomColorEl = document.getElementById('treeBlossomColor');
 
 const fernPointsEl = document.getElementById('fernPoints');
 const fernSizeEl   = document.getElementById('fernSize');
+const spaceFernsEl = document.getElementById('spaceFerns');
+
+const pathWidthEl = document.getElementById('pathWidth');
+const pathAirbrushEl = document.getElementById('pathAirbrush');
+const airbrushControlsEl = document.getElementById('airbrushControls');
+const airbrushSizeEl = document.getElementById('airbrushSize');
+const airbrushSizeLabel = document.getElementById('airbrushSizeLabel');
+
+const mountainParamsEl = document.getElementById('mountainParams');
+const mountainDetailEl = document.getElementById('mountainDetail');
+const mountainDetailLabel = document.getElementById('mountainDetailLabel');
+const mountainHeightEl = document.getElementById('mountainHeight');
+const mountainHeightLabel = document.getElementById('mountainHeightLabel');
+const mountainJaggednessEl = document.getElementById('mountainJaggedness');
+const mountainJaggednessLabel = document.getElementById('mountainJaggednessLabel');
+const mountainSmoothEl = document.getElementById('mountainSmooth');
+
+const celestialParamsEl = document.getElementById('celestialParams');
+const celestialSizeEl = document.getElementById('celestialSize');
+const celestialSizeLabel = document.getElementById('celestialSizeLabel');
+const celestialGlowEl = document.getElementById('celestialGlow');
+const celestialGlowLabel = document.getElementById('celestialGlowLabel');
 
 const eraserSizeEl = document.getElementById('eraserSize');
-const pathWidthEl = document.getElementById('pathWidth');
 
 const levelAlphaEl = document.getElementById('levelAlpha');
 const editingLevelText = document.getElementById('editingLevelText');
@@ -90,6 +111,12 @@ const cloudMinWEl    = document.getElementById('cloudMinW');
 const cloudMaxWEl    = document.getElementById('cloudMaxW');
 const cloudBlurEl    = document.getElementById('cloudBlur');
 const cloudShadowEl  = document.getElementById('cloudShadowColor');
+const animateCloudsEl = document.getElementById('animateClouds');
+const cloudAnimControlsEl = document.getElementById('cloudAnimControls');
+const cloudSpeedEl = document.getElementById('cloudSpeed');
+const cloudSpeedLabel = document.getElementById('cloudSpeedLabel');
+const cloudDriftEl = document.getElementById('cloudDrift');
+const cloudDriftLabel = document.getElementById('cloudDriftLabel');
 
 const cloudCountLabel= document.getElementById('cloudCountLabel');
 const cloudMinDLabel = document.getElementById('cloudMinDLabel');
@@ -105,6 +132,7 @@ const singleColorEl = document.getElementById('singleColor');
 const playbackBtn = document.getElementById('playbackBtn');
 const playbackSpeedEl = document.getElementById('playbackSpeed');
 const playbackSpeedLabel = document.getElementById('playbackSpeedLabel');
+const sessionWarningEl = document.getElementById('sessionWarning');
 let isPlaying = false;
 
 const otherScaleMinEl = document.getElementById('otherScaleMin');
@@ -149,14 +177,23 @@ function updateUIValues(){
   setText(scaleLabel,  widthScaleEl ? Number(widthScaleEl.value).toFixed(2) : '');
   setText(treeBlossomSizeLabel, treeBlossomSizeEl ? treeBlossomSizeEl.value : '');
   setText(pathWidthLabel, pathWidthEl ? pathWidthEl.value : '');
+  setText(airbrushSizeLabel, airbrushSizeEl ? airbrushSizeEl.value : '');
   setText(fernPointsLabel, fernPointsEl ? fernPointsEl.value : '');
   setText(fernSizeLabel,   fernSizeEl ? Number(fernSizeEl.value).toFixed(2) : '');
   setText(eraserSizeLabel, eraserSizeEl ? eraserSizeEl.value : '');
   setText(flowerBlossomSizeLabel, flowerBlossomSizeEl ? flowerBlossomSizeEl.value : '');
+  setText(mountainDetailLabel, mountainDetailEl ? mountainDetailEl.value : '');
+  setText(mountainHeightLabel, mountainHeightEl ? mountainHeightEl.value : '');
+  setText(mountainJaggednessLabel, mountainJaggednessEl ? Number(mountainJaggednessEl.value).toFixed(2) : '');
+
+  setText(celestialSizeLabel, celestialSizeEl ? celestialSizeEl.value : '');
+  setText(celestialGlowLabel, celestialGlowEl ? celestialGlowEl.value : '');
 
   if (svgFernThinEl && svgFernThinLabel) svgFernThinLabel.textContent = `${svgFernThinEl.value}×`;
   if (windAmpEl && windAmpLabel)       windAmpLabel.textContent   = Number(windAmpEl.value).toFixed(0);
   if (windSpeedEl && windSpeedLabel)   windSpeedLabel.textContent = Number(windSpeedEl.value).toFixed(2);
+  if (cloudSpeedEl && cloudSpeedLabel) cloudSpeedLabel.textContent = Number(cloudSpeedEl.value).toFixed(2);
+  if (cloudDriftEl && cloudDriftLabel)  cloudDriftLabel.textContent = Number(cloudDriftEl.value).toFixed(0);
 
   if (snowIterEl && snowIterLabel)     snowIterLabel.textContent  = snowIterEl.value;
   if (snowSizeEl && snowSizeLabel)     snowSizeLabel.textContent  = Number(snowSizeEl.value).toFixed(2);
@@ -206,13 +243,16 @@ const eraserSizeLabel = document.getElementById('eraserSizeLabel');
 
 [
   levelsEl,baseEl,lenScaleEl,angleEl,lenRandEl,angleRandEl,baseWidthEl,widthScaleEl,pathWidthEl,fernPointsEl,fernSizeEl,eraserSizeEl,
-  treeBlossomSizeEl, flowerBlossomSizeEl,
+  treeBlossomSizeEl, flowerBlossomSizeEl, airbrushSizeEl,
   windAmpEl,windSpeedEl, svgFernThinEl,
+  cloudSpeedEl, cloudDriftEl,
   snowIterEl,snowSizeEl,snowStrokeEl,
   flowerIterEl,flowerAngleEl,flowerStepEl,flowerStrokeEl,
   vineLengthEl,vineNoiseEl,vineStrokeEl,
   cloudCountEl,cloudMinDEl,cloudMaxDEl,cloudMinWEl,cloudMaxWEl,cloudBlurEl,
-  otherScaleMinEl, otherScaleMaxEl, newObjectAlphaSliderEl, playbackSpeedEl
+  mountainDetailEl, mountainHeightEl, mountainJaggednessEl,
+  otherScaleMinEl, otherScaleMaxEl, newObjectAlphaSliderEl, playbackSpeedEl,
+  celestialSizeEl, celestialGlowEl
 ].filter(Boolean).forEach(el=>el.addEventListener('input',updateUIValues));
 updateUIValues();
 
@@ -223,12 +263,14 @@ function updateModeUI(){
   show('treeParams',   mode==='tree');
   show('fernParams',   mode==='fern');
   show('pathParams',   mode==='path');
+  show('mountainParams', mode === 'mountain');
+  show('celestialParams', mode === 'celestial');
   show('snowParams',   mode==='snowflake');
   show('flowerParams', mode==='flower');
   show('vineParams',   mode==='vine');
   show('cloudParams',  mode==='clouds');
   show('eraserParams', mode==='eraser');
-  
+
   if(levelEditBox) levelEditBox.style.display = (mode==='tree') ? levelEditBox.style.display : 'none';
 }
 if (modeSelect) modeSelect.addEventListener('change', updateModeUI);
@@ -242,6 +284,11 @@ if (addTreeBlossomsEl) {
 if (addFlowerBlossomsEl) {
     addFlowerBlossomsEl.addEventListener('change', () => {
         if(flowerBlossomControlsEl) flowerBlossomControlsEl.style.display = addFlowerBlossomsEl.checked ? 'block' : 'none';
+    });
+}
+if (pathAirbrushEl) {
+    pathAirbrushEl.addEventListener('change', () => {
+        if(airbrushControlsEl) airbrushControlsEl.style.display = pathAirbrushEl.checked ? 'block' : 'none';
     });
 }
 
@@ -267,6 +314,14 @@ if (applyNewObjectAlphaEl) {
     });
 }
 
+if (animateCloudsEl) {
+    animateCloudsEl.addEventListener('change', () => {
+        if (cloudAnimControlsEl) cloudAnimControlsEl.style.display = animateCloudsEl.checked ? 'block' : 'none';
+        if (isAnimating() && !animReq) startAnimation();
+        else if (!isAnimating()) redrawAll();
+    });
+}
+
 if (helpBtn) {
     helpBtn.addEventListener('click', () => {
         const isHelpActive = controls.classList.toggle('help-mode');
@@ -288,6 +343,17 @@ if (helpBtn) {
             }
         }
     }, true);
+}
+
+function checkSessionSize() {
+    if (!sessionWarningEl) return;
+    const sizeThreshold = 5000;
+    if (scene.length > sizeThreshold) {
+        sessionWarningEl.textContent = `Warning: This session contains ${scene.length} objects and may be slow to save or reload on some devices.`;
+        sessionWarningEl.style.display = 'block';
+    } else {
+        sessionWarningEl.style.display = 'none';
+    }
 }
 
 function ensureTreeDefaults(levels){

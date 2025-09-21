@@ -3,8 +3,18 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q0G8ECKDFZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q0G8ECKDFZ');
+</script>
 <link href="fractal_drawing.css" rel="stylesheet">
 <title>Fractal Forest — Edit Branches • Undo/Redo • Eraser</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 <body>
 <header>
@@ -27,11 +37,22 @@
 
     <div id="tabsContainer">
         <div id="shapeTab" class="tab active">
+          <div class="btnrow">
+            <button id="undoBtn" class="action" title="Ctrl/Cmd+Z">Undo</button>
+            <button id="redoBtn" class="action" title="Ctrl/Cmd+Y">Redo</button>
+            <button id="clearBtn" class="action">Clear</button>
+            <button id="saveBtn" class="action">Save PNG</button>
+            <button id="exportSvgBtn" class="action">Export SVG</button>
+            <button id="exportPngLayersBtn" class="action">Export Layers</button>
+          </div>
+    
           <label class="row" for="modeSelect">Mode</label>
           <select id="modeSelect">
             <option value="tree">Tree</option>
             <option value="fern">Fern</option>
             <option value="path">Path</option>
+            <option value="mountain">Mountain</option>
+            <option value="celestial">Sun/Moon</option>
             <option value="snowflake">Snowflake</option>
             <option value="flower">Flower</option>
             <option value="vine">Vine</option>
@@ -80,11 +101,44 @@
             <input id="fernPoints" type="range" min="100" max="20000" step="100" value="1000" title="The number of points used to draw each fern. Higher values are denser.">
             <label class="row" for="fernSize">Fern size (relative) <span id="fernSizeLabel">0.01</span></label>
             <input id="fernSize" type="range" min="0.0005" max="0.2" step="0.0001" value="0.01" title="The overall size of the fern relative to the canvas height.">
+            <label style="display:block;margin-top:8px;font-size:12px;color:var(--muted);">
+                <input type="checkbox" id="spaceFerns" title="Introduces slight random variations to each fern's shape.">
+                Enable "Space Ferns"
+            </label>
           </div>
     
           <div id="pathParams" style="margin-top:10px; display:none;">
             <label class="row" for="pathWidth">Path Width (px) <span id="pathWidthLabel">5</span></label>
             <input id="pathWidth" type="range" min="1" max="100" value="5" title="The width of the drawn path in pixels.">
+            
+            <hr style="opacity:.1; margin: 10px 0;">
+            <label style="display: block;">
+                <input type="checkbox" id="pathAirbrush" title="Enable a soft, airbrush effect for the path tool."> Enable Airbrush Effect
+            </label>
+            <div id="airbrushControls" style="display:none;">
+                <label class="row" for="airbrushSize">Airbrush Size/Feather <span id="airbrushSizeLabel">15</span></label>
+                <input id="airbrushSize" type="range" min="1" max="50" value="15" title="The size and softness of the airbrush effect.">
+            </div>
+          </div>
+
+          <div id="mountainParams" style="margin-top:10px; display:none;">
+            <label class="row" for="mountainDetail">Detail Level <span id="mountainDetailLabel">6</span></label>
+            <input id="mountainDetail" type="range" min="1" max="10" value="6" title="The number of recursive subdivisions. Higher values create more detailed mountains.">
+            <label class="row" for="mountainHeight">Peak Height <span id="mountainHeightLabel">100</span></label>
+            <input id="mountainHeight" type="range" min="10" max="300" value="100" title="The maximum initial height of the mountain peaks.">
+            <label class="row" for="mountainJaggedness">Jaggedness <span id="mountainJaggednessLabel">0.60</span></label>
+            <input id="mountainJaggedness" type="range" min="0.2" max="0.9" step="0.01" value="0.6" title="How rough the terrain is. Higher values are more jagged.">
+            <label style="display:block;margin-top:8px;font-size:12px;color:var(--muted);">
+                <input type="checkbox" id="mountainSmooth" title="Smooth the mountain ridgeline using a spline curve.">
+                Smooth Ridgeline (Spline)
+            </label>
+          </div>
+
+          <div id="celestialParams" style="margin-top:10px; display:none;">
+            <label class="row" for="celestialSize">Size (px) <span id="celestialSizeLabel">50</span></label>
+            <input id="celestialSize" type="range" min="10" max="400" value="50" title="The radius of the sun or moon in pixels.">
+            <label class="row" for="celestialGlow">Glow Amount <span id="celestialGlowLabel">30</span></label>
+            <input id="celestialGlow" type="range" min="0" max="100" value="30" title="The size and intensity of the object's glow.">
           </div>
     
           <div id="snowParams" style="margin-top: 10px">
@@ -128,20 +182,31 @@
           </div>
         
             <div id="cloudParams" style="display:none">
-              <label for="cloudCount">Circles per stamp: <span id="cloudCountLabel">10</span></label>
-              <input id="cloudCount" type="range" min="1" max="30" value="10" title="The number of circles drawn for each cloud stamp.">
-              <label for="cloudMinD">Min diameter (px): <span id="cloudMinDLabel">20</span></label>
-              <input id="cloudMinD" type="range" min="1" max="400" value="20" title="The minimum possible diameter for a cloud circle.">
-              <label for="cloudMaxD">Max diameter (px): <span id="cloudMaxDLabel">120</span></label>
-              <input id="cloudMaxD" type="range" min="1" max="800" value="120" title="The maximum possible diameter for a cloud circle.">
-              <label for="cloudMinW">Min line width (px): <span id="cloudMinWLabel">1.0</span></label>
-              <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="1" title="The minimum possible line width for a cloud circle.">
-              <label for="cloudMaxW">Max line width (px): <span id="cloudMaxWLabel">4.0</span></label>
-              <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="4" title="The maximum possible line width for a cloud circle.">
+              <label for="cloudCount">Circles per stamp: <span id="cloudCountLabel">1</span></label>
+              <input id="cloudCount" type="range" min="1" max="30" value="1" title="The number of circles drawn for each cloud stamp.">
+              <label for="cloudMinD">Min diameter (px): <span id="cloudMinDLabel">1</span></label>
+              <input id="cloudMinD" type="range" min="1" max="400" value="1" title="The minimum possible diameter for a cloud circle.">
+              <label for="cloudMaxD">Max diameter (px): <span id="cloudMaxDLabel">37</span></label>
+              <input id="cloudMaxD" type="range" min="1" max="800" value="37" title="The maximum possible diameter for a cloud circle.">
+              <label for="cloudMinW">Min line width (px): <span id="cloudMinWLabel">10.0</span></label>
+              <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="10" title="The minimum possible line width for a cloud circle.">
+              <label for="cloudMaxW">Max line width (px): <span id="cloudMaxWLabel">37.0</span></label>
+              <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="37" title="The maximum possible line width for a cloud circle.">
               <label for="cloudBlur">Highlight blur (px): <span id="cloudBlurLabel">8</span></label>
               <input id="cloudBlur" type="range" min="0" max="40" step="1" value="8" title="The blur radius for the cloud's shadow/highlight effect.">
               <label for="cloudShadowColor">Highlight color</label>
-              <input id="cloudShadowColor" type="color" value="#555555">
+              <input id="cloudShadowColor" type="color" value="#BEBEBE">
+
+              <hr style="opacity:.1; margin: 10px 0;">
+              <label style="display: block;">
+                  <input type="checkbox" id="animateClouds" title="Enable or disable a gentle drifting animation for all clouds."> Animate Cloud Drift
+              </label>
+              <div id="cloudAnimControls" style="display:none;">
+                  <label class="row" for="cloudSpeed">Cloud Speed <span id="cloudSpeedLabel">0.10</span></label>
+                  <input id="cloudSpeed" type="range" min="0" max="0.5" step="0.01" value="0.1" title="How fast the clouds drift.">
+                  <label class="row" for="cloudDrift">Drift Amount (px) <span id="cloudDriftLabel">20</span></label>
+                  <input id="cloudDrift" type="range" min="0" max="100" step="1" value="20" title="How far the clouds drift from their original position.">
+              </div>
             </div>
     
             <div id="otherScaleControls" style="margin-top:10px">
@@ -154,15 +219,6 @@
           <div id="eraserParams" style="margin-top:10px; display:none">
             <label class="row" for="eraserSize">Eraser size (px) <span id="eraserSizeLabel">24</span></label>
             <input id="eraserSize" type="range" min="6" max="80" value="24" title="The width of the eraser stroke in pixels.">
-          </div>
-    
-          <div class="btnrow">
-            <button id="undoBtn" class="action" title="Ctrl/Cmd+Z">Undo</button>
-            <button id="redoBtn" class="action" title="Ctrl/Cmd+Y">Redo</button>
-            <button id="clearBtn" class="action">Clear</button>
-            <button id="saveBtn" class="action">Save PNG</button>
-            <button id="exportSvgBtn" class="action">Export SVG</button>
-            <button id="exportPngLayersBtn" class="action">Export Layers</button>
           </div>
     
             <div id="svgExportOptions" style="margin-top:10px">
@@ -187,14 +243,6 @@
         </div>
     
         <div id="colorTab" class="tab">
-            <div class="small">This palette is used for tree branch colors and as a source for other objects when "Cycle Palette" is selected below.</div>
-            <hr style="opacity:.2;margin:10px 0;">
-            <div id="branchColorPanel" class="visible" aria-hidden="false"></div>
-            <label style="margin-top: 8px; display: block;">
-                <input type="checkbox" id="randomBranchColor" title="When checked, each new branch on a tree will be a random color from the palette, instead of based on its level."> Random Branch Color (Trees Only)
-            </label>
-            <hr style="opacity:.2;margin:10px 0;">
-    
             <div id="nonTreeColorSection">
                 <label for="nonTreeColorMode">Coloring for Non-Tree Objects</label>
                 <select id="nonTreeColorMode">
@@ -203,10 +251,9 @@
                 </select>
                 <div id="singleColorBox" style="margin-top: 6px;">
                     <label class="row" for="singleColor">Object Color</label>
-                    <input id="singleColor" type="color" value="#58c470">
+                    <input id="singleColor" type="color" value="#ffffff">
                 </div>
             </div>
-            
             <hr style="opacity:.2;margin:10px 0;">
             <div id="newObjectAlphaSection" style="margin-top:8px;">
                 <label>
@@ -218,7 +265,16 @@
                     <input id="newObjectAlphaSlider" type="range" min="0" max="1" step="0.01" value="1" title="The alpha (transparency) value for new objects. 0 is fully transparent, 1 is fully opaque.">
                 </div>
             </div>
-    
+            
+            <hr style="opacity:.2;margin:10px 0;">
+            <div class="small">This palette is used for tree branch colors and as a source for other objects when "Cycle Palette" is selected below.</div>
+            <hr style="opacity:.2;margin:10px 0;">
+            <div id="branchColorPanel" class="visible" aria-hidden="false"></div>
+            <label style="margin-top: 8px; display: block;">
+                <input type="checkbox" id="randomBranchColor" title="When checked, each new branch on a tree will be a random color from the palette, instead of based on its level."> Random Branch Color (Trees Only)
+            </label>
+            <hr style="opacity:.2;margin:10px 0;">
+        
           <div id="levelEditBox" style="display:none; margin-top:10px">
             <div class="small">Editing level: <strong id="editingLevelText"></strong></div>
             <label class="row" for="levelAlpha">Level alpha <span id="levelAlphaLabel">1.00</span></label>
@@ -262,8 +318,9 @@
           <div id="sessionControls" class="btnrow">
               <button id="exportSessionBtn" class="action">Export Session</button>
               <button id="loadSessionBtn" class="action">Load Session</button>
-              <input type="file" id="sessionFileInput" accept=".json" style="display: none;">
+              <input type="file" id="sessionFileInput" accept=".json,.gz" style="display: none;">
           </div>
+          <div id="sessionWarning" class="small hint" style="display:none; margin-top: 10px; color: #facc15;"></div>
         </div>
     </div>
   </div>
