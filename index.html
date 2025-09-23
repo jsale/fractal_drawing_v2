@@ -37,6 +37,14 @@
 
     <div id="tabsContainer">
         <div id="shapeTab" class="tab active">
+          <div class="btnrow">
+            <button id="undoBtn" class="action" title="Ctrl/Cmd+Z">Undo</button>
+            <button id="redoBtn" class="action" title="Ctrl/Cmd+Y">Redo</button>
+            <button id="clearBtn" class="action">Clear</button>
+            <button id="saveBtn" class="action">Save PNG</button>
+            <button id="exportSvgBtn" class="action">Export SVG</button>
+          </div>
+    
           <label class="row" for="modeSelect">Mode</label>
           <select id="modeSelect">
             <option value="tree">Tree</option>
@@ -175,18 +183,18 @@
             <div id="cloudParams" style="display:none">
               <div class="param-row"><label for="cloudCount">Circles per stamp</label><input id="cloudCountValue" type="number" min="1" max="30" value="10"></div>
               <input id="cloudCount" type="range" min="1" max="30" value="10" title="The number of circles drawn for each cloud stamp.">
-              <div class="param-row"><label for="cloudMinD">Min diameter</label><input id="cloudMinDValue" type="number" min="1" max="400" value="20"></div>
-              <input id="cloudMinD" type="range" min="1" max="400" value="20" title="The minimum possible diameter for a cloud circle.">
-              <div class="param-row"><label for="cloudMaxD">Max diameter</label><input id="cloudMaxDValue" type="number" min="1" max="800" value="120"></div>
-              <input id="cloudMaxD" type="range" min="1" max="800" value="120" title="The maximum possible diameter for a cloud circle.">
-              <div class="param-row"><label for="cloudMinW">Min line width</label><input id="cloudMinWValue" type="number" min="0.2" max="20" step="0.1" value="1"></div>
-              <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="1" title="The minimum possible line width for a cloud circle.">
-              <div class="param-row"><label for="cloudMaxW">Max line width</label><input id="cloudMaxWValue" type="number" min="0.2" max="40" step="0.1" value="4"></div>
-              <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="4" title="The maximum possible line width for a cloud circle.">
+              <div class="param-row"><label for="cloudMinD">Min diameter</label><input id="cloudMinDValue" type="number" min="1" max="400" value="1"></div>
+              <input id="cloudMinD" type="range" min="1" max="400" value="1" title="The minimum possible diameter for a cloud circle.">
+              <div class="param-row"><label for="cloudMaxD">Max diameter</label><input id="cloudMaxDValue" type="number" min="1" max="400" value="37"></div>
+              <input id="cloudMaxD" type="range" min="1" max="400" value="37" title="The maximum possible diameter for a cloud circle.">
+              <div class="param-row"><label for="cloudMinW">Min line width</label><input id="cloudMinWValue" type="number" min="0.2" max="20" step="0.1" value="10"></div>
+              <input id="cloudMinW" type="range" min="0.2" max="20" step="0.1" value="10" title="The minimum possible line width for a cloud circle.">
+              <div class="param-row"><label for="cloudMaxW">Max line width</label><input id="cloudMaxWValue" type="number" min="0.2" max="40" step="0.1" value="20"></div>
+              <input id="cloudMaxW" type="range" min="0.2" max="40" step="0.1" value="20" title="The maximum possible line width for a cloud circle.">
               
               <hr style="opacity:.1; margin: 10px 0;">
               <label class="row" for="cloudShadowColor">Highlight color</label>
-              <input id="cloudShadowColor" type="color" value="#555555">
+              <input id="cloudShadowColor" type="color" value="#BEBEBE">
               <div class="param-row"><label for="cloudBlur">Highlight Blur</label><input id="cloudBlurValue" type="number" min="0" max="40" value="8"></div>
               <input id="cloudBlur" type="range" min="0" max="40" step="1" value="8" title="The blur radius for the cloud's shadow/highlight effect.">
               <div class="param-row"><label for="cloudShadowX">Highlight X Offset</label><input id="cloudShadowXValue" type="number" min="-50" max="50" value="8"></div>
@@ -220,14 +228,6 @@
             <input id="eraserSize" type="range" min="6" max="80" value="24" title="The width of the eraser stroke in pixels.">
           </div>
     
-          <div class="btnrow">
-            <button id="undoBtn" class="action" title="Ctrl/Cmd+Z">Undo</button>
-            <button id="redoBtn" class="action" title="Ctrl/Cmd+Y">Redo</button>
-            <button id="clearBtn" class="action">Clear</button>
-            <button id="saveBtn" class="action">Save PNG</button>
-            <button id="exportSvgBtn" class="action">Export SVG</button>
-          </div>
-    
             <div id="svgExportOptions" style="margin-top:10px">
               <div class="param-row"><label for="svgFernThin">SVG fern thinning</label><input id="svgFernThinValue" type="number" min="1" max="8" value="1"></div>
               <input id="svgFernThin" type="range" min="1" max="8" step="1" value="1" title="Reduces the number of points in exported SVG ferns to keep file sizes small. 1x is full detail.">
@@ -250,14 +250,6 @@
         </div>
     
         <div id="colorTab" class="tab">
-            <div class="small">This palette is used for tree branch colors and as a source for other objects when "Cycle Palette" is selected below.</div>
-            <hr style="opacity:.2;margin:10px 0;">
-            <div id="branchColorPanel" class="visible" aria-hidden="false"></div>
-            <label style="margin-top: 8px; display: block;">
-                <input type="checkbox" id="randomBranchColor" title="When checked, each new branch on a tree will be a random color from the palette, instead of based on its level."> Random Branch Color (Trees Only)
-            </label>
-            <hr style="opacity:.2;margin:10px 0;">
-    
             <div id="nonTreeColorSection">
                 <label for="nonTreeColorMode">Coloring for Non-Tree Objects</label>
                 <select id="nonTreeColorMode">
@@ -266,7 +258,7 @@
                 </select>
                 <div id="singleColorBox" style="margin-top: 6px;">
                     <label class="row" for="singleColor">Object Color</label>
-                    <input id="singleColor" type="color" value="#58c470">
+                    <input id="singleColor" type="color" value="#FFFFFF">
                 </div>
             </div>
             
@@ -281,6 +273,14 @@
                     <input id="newObjectAlphaSlider" type="range" min="0" max="1" step="0.01" value="1" title="The alpha (transparency) value for new objects. 0 is fully transparent, 1 is fully opaque.">
                 </div>
             </div>
+    
+            <div class="small">This palette is used for tree branch colors and as a source for other objects when "Cycle Palette" is selected below.</div>
+            <hr style="opacity:.2;margin:10px 0;">
+            <div id="branchColorPanel" class="visible" aria-hidden="false"></div>
+            <label style="margin-top: 8px; display: block;">
+                <input type="checkbox" id="randomBranchColor" title="When checked, each new branch on a tree will be a random color from the palette, instead of based on its level."> Random Branch Color (Trees Only)
+            </label>
+            <hr style="opacity:.2;margin:10px 0;">
     
           <div id="levelEditBox" style="display:none; margin-top:10px">
             <div class="small">Editing level: <strong id="editingLevelText"></strong></div>
