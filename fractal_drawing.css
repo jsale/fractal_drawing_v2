@@ -70,6 +70,28 @@ label.row {
   margin-top: 10px;
   color: var(--muted)
 }
+.param-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    color: var(--muted);
+}
+.param-row input[type="number"] {
+    width: 70px;
+    background-color: #202833;
+    color: #e6eef6;
+    border: 1px solid #3e4c5b;
+    border-radius: 4px;
+    padding: 4px;
+    text-align: right;
+    -moz-appearance: textfield; /* Firefox */
+}
+.param-row input[type="number"]::-webkit-inner-spin-button,
+.param-row input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 input[type=range], input[type=color], select {
   width: 100%;
   margin-top: 6px
@@ -190,9 +212,16 @@ canvas {
         transition: transform 0.3s ease-out;
         background: var(--panel);
         box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
     }
     .controls.is-visible {
         transform: translateX(0);
+    }
+    #tabsContainer {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding-bottom: 24px;
     }
     .mobile-only-btn {
         display: block;

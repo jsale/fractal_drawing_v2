@@ -11,50 +11,63 @@ const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
 
 const levelsEl  = document.getElementById('levels');
+const levelsValueEl = document.getElementById('levelsValue');
 const baseEl    = document.getElementById('baseLen');
+const baseLenValueEl = document.getElementById('baseLenValue');
 const lenScaleEl  = document.getElementById('lenScale');
+const lenScaleValueEl = document.getElementById('lenScaleValue');
 const angleEl   = document.getElementById('angle');
+const angleValueEl = document.getElementById('angleValue');
 const lenRandEl = document.getElementById('lenRand');
+const lenRandValueEl = document.getElementById('lenRandValue');
 const angleRandEl = document.getElementById('angleRand');
+const angleRandValueEl = document.getElementById('angleRandValue');
 const uniformAngleRandEl = document.getElementById('uniformAngleRand');
 const baseWidthEl = document.getElementById('baseWidth');
+const baseWidthValueEl = document.getElementById('baseWidthValue');
 const widthScaleEl= document.getElementById('widthScale');
+const widthScaleValueEl = document.getElementById('widthScaleValue');
 const randomBranchColorEl = document.getElementById('randomBranchColor');
 
 const addTreeBlossomsEl = document.getElementById('addTreeBlossoms');
 const treeBlossomControlsEl = document.getElementById('treeBlossomControls');
 const treeBlossomSizeEl = document.getElementById('treeBlossomSize');
-const treeBlossomSizeLabel = document.getElementById('treeBlossomSizeLabel');
+const treeBlossomSizeValueEl = document.getElementById('treeBlossomSizeValue');
 const treeBlossomColorEl = document.getElementById('treeBlossomColor');
 
 const fernPointsEl = document.getElementById('fernPoints');
+const fernPointsValueEl = document.getElementById('fernPointsValue');
 const fernSizeEl   = document.getElementById('fernSize');
+const fernSizeValueEl = document.getElementById('fernSizeValue');
 const spaceFernsEl = document.getElementById('spaceFerns');
 
 const pathWidthEl = document.getElementById('pathWidth');
+const pathWidthValueEl = document.getElementById('pathWidthValue');
 const pathAirbrushEl = document.getElementById('pathAirbrush');
 const airbrushControlsEl = document.getElementById('airbrushControls');
 const airbrushSizeEl = document.getElementById('airbrushSize');
-const airbrushSizeLabel = document.getElementById('airbrushSizeLabel');
+const airbrushSizeValueEl = document.getElementById('airbrushSizeValue');
 
 const mountainParamsEl = document.getElementById('mountainParams');
 const mountainDetailEl = document.getElementById('mountainDetail');
-const mountainDetailLabel = document.getElementById('mountainDetailLabel');
+const mountainDetailValueEl = document.getElementById('mountainDetailValue');
 const mountainHeightEl = document.getElementById('mountainHeight');
-const mountainHeightLabel = document.getElementById('mountainHeightLabel');
+const mountainHeightValueEl = document.getElementById('mountainHeightValue');
 const mountainJaggednessEl = document.getElementById('mountainJaggedness');
-const mountainJaggednessLabel = document.getElementById('mountainJaggednessLabel');
+const mountainJaggednessValueEl = document.getElementById('mountainJaggednessValue');
 const mountainSmoothEl = document.getElementById('mountainSmooth');
 
 const celestialParamsEl = document.getElementById('celestialParams');
 const celestialSizeEl = document.getElementById('celestialSize');
-const celestialSizeLabel = document.getElementById('celestialSizeLabel');
+const celestialSizeValueEl = document.getElementById('celestialSizeValue');
 const celestialGlowEl = document.getElementById('celestialGlow');
-const celestialGlowLabel = document.getElementById('celestialGlowLabel');
+const celestialGlowValueEl = document.getElementById('celestialGlowValue');
 
 const eraserSizeEl = document.getElementById('eraserSize');
+const eraserSizeValueEl = document.getElementById('eraserSizeValue');
 
 const levelAlphaEl = document.getElementById('levelAlpha');
+const levelAlphaValueEl = document.getElementById('levelAlphaValue');
 const editingLevelText = document.getElementById('editingLevelText');
 const levelEditBox = document.getElementById('levelEditBox');
 const applyAllEl = document.getElementById('applyAllTrees');
@@ -69,61 +82,66 @@ const backgroundColor2El = document.getElementById('backgroundColor2');
 const applyNewObjectAlphaEl = document.getElementById('applyNewObjectAlpha');
 const newObjectAlphaControlsEl = document.getElementById('newObjectAlphaControls');
 const newObjectAlphaSliderEl = document.getElementById('newObjectAlphaSlider');
-const newObjectAlphaLabelEl = document.getElementById('newObjectAlphaLabel');
+const newObjectAlphaValueEl = document.getElementById('newObjectAlphaValue');
 
 const svgFernThinEl   = document.getElementById('svgFernThin');
-const svgFernThinLabel= document.getElementById('svgFernThinLabel');
+const svgFernThinValueEl = document.getElementById('svgFernThinValue');
 const svgGroupByLevelEl = document.getElementById('svgGroupByLevel');
 
 const snowIterEl   = document.getElementById('snowIter');
+const snowIterValueEl = document.getElementById('snowIterValue');
 const snowSizeEl   = document.getElementById('snowSize');
+const snowSizeValueEl = document.getElementById('snowSizeValue');
 const snowStrokeEl = document.getElementById('snowStroke');
-const snowIterLabel   = document.getElementById('snowIterLabel');
-const snowSizeLabel   = document.getElementById('snowSizeLabel');
-const snowStrokeLabel = document.getElementById('snowStrokeLabel');
+const snowStrokeValueEl = document.getElementById('snowStrokeValue');
 
 const flowerIterEl   = document.getElementById('flowerIter');
+const flowerIterValueEl = document.getElementById('flowerIterValue');
 const flowerAngleEl  = document.getElementById('flowerAngle');
+const flowerAngleValueEl = document.getElementById('flowerAngleValue');
 const flowerStepEl   = document.getElementById('flowerStep');
+const flowerStepValueEl = document.getElementById('flowerStepValue');
 const flowerStrokeEl = document.getElementById('flowerStroke');
-const flowerIterLabel   = document.getElementById('flowerIterLabel');
-const flowerAngleLabel  = document.getElementById('flowerAngleLabel');
-const flowerStepLabel   = document.getElementById('flowerStepLabel');
-const flowerStrokeLabel = document.getElementById('flowerStrokeLabel');
+const flowerStrokeValueEl = document.getElementById('flowerStrokeValue');
 
 const addFlowerBlossomsEl = document.getElementById('addFlowerBlossoms');
 const flowerBlossomControlsEl = document.getElementById('flowerBlossomControls');
 const flowerBlossomSizeEl = document.getElementById('flowerBlossomSize');
-const flowerBlossomSizeLabel = document.getElementById('flowerBlossomSizeLabel');
+const flowerBlossomSizeValueEl = document.getElementById('flowerBlossomSizeValue');
 const flowerBlossomColorEl = document.getElementById('flowerBlossomColor');
 
 const vineLengthEl  = document.getElementById('vineLength');
+const vineLengthValueEl = document.getElementById('vineLengthValue');
 const vineNoiseEl   = document.getElementById('vineNoise');
+const vineNoiseValueEl = document.getElementById('vineNoiseValue');
 const vineStrokeEl  = document.getElementById('vineStroke');
-const vineLengthLabel= document.getElementById('vineLengthLabel');
-const vineNoiseLabel = document.getElementById('vineNoiseLabel');
-const vineStrokeLabel= document.getElementById('vineStrokeLabel');
+const vineStrokeValueEl = document.getElementById('vineStrokeValue');
 
 const cloudCountEl   = document.getElementById('cloudCount');
+const cloudCountValueEl = document.getElementById('cloudCountValue');
 const cloudMinDEl    = document.getElementById('cloudMinD');
+const cloudMinDValueEl = document.getElementById('cloudMinDValue');
 const cloudMaxDEl    = document.getElementById('cloudMaxD');
+const cloudMaxDValueEl = document.getElementById('cloudMaxDValue');
 const cloudMinWEl    = document.getElementById('cloudMinW');
+const cloudMinWValueEl = document.getElementById('cloudMinWValue');
 const cloudMaxWEl    = document.getElementById('cloudMaxW');
+const cloudMaxWValueEl = document.getElementById('cloudMaxWValue');
 const cloudBlurEl    = document.getElementById('cloudBlur');
+const cloudBlurValueEl = document.getElementById('cloudBlurValue');
 const cloudShadowEl  = document.getElementById('cloudShadowColor');
+const cloudShadowXEl = document.getElementById('cloudShadowX');
+const cloudShadowXValueEl = document.getElementById('cloudShadowXValue');
+const cloudShadowYEl = document.getElementById('cloudShadowY');
+const cloudShadowYValueEl = document.getElementById('cloudShadowYValue');
+const cloudShadowAlphaEl = document.getElementById('cloudShadowAlpha');
+const cloudShadowAlphaValueEl = document.getElementById('cloudShadowAlphaValue');
 const animateCloudsEl = document.getElementById('animateClouds');
 const cloudAnimControlsEl = document.getElementById('cloudAnimControls');
 const cloudSpeedEl = document.getElementById('cloudSpeed');
-const cloudSpeedLabel = document.getElementById('cloudSpeedLabel');
+const cloudSpeedValueEl = document.getElementById('cloudSpeedValue');
 const cloudDriftEl = document.getElementById('cloudDrift');
-const cloudDriftLabel = document.getElementById('cloudDriftLabel');
-
-const cloudCountLabel= document.getElementById('cloudCountLabel');
-const cloudMinDLabel = document.getElementById('cloudMinDLabel');
-const cloudMaxDLabel = document.getElementById('cloudMaxDLabel');
-const cloudMinWLabel = document.getElementById('cloudMinWLabel');
-const cloudMaxWLabel = document.getElementById('cloudMaxWLabel');
-const cloudBlurLabel = document.getElementById('cloudBlurLabel');
+const cloudDriftValueEl = document.getElementById('cloudDriftValue');
 
 const nonTreeColorModeEl = document.getElementById('nonTreeColorMode');
 const singleColorBoxEl = document.getElementById('singleColorBox');
@@ -131,20 +149,20 @@ const singleColorEl = document.getElementById('singleColor');
 
 const playbackBtn = document.getElementById('playbackBtn');
 const playbackSpeedEl = document.getElementById('playbackSpeed');
-const playbackSpeedLabel = document.getElementById('playbackSpeedLabel');
+const playbackSpeedValueEl = document.getElementById('playbackSpeedValue');
 const sessionWarningEl = document.getElementById('sessionWarning');
 let isPlaying = false;
 
 const otherScaleMinEl = document.getElementById('otherScaleMin');
+const otherScaleMinValueEl = document.getElementById('otherScaleMinValue');
 const otherScaleMaxEl = document.getElementById('otherScaleMax');
-const otherScaleMinLabel = document.getElementById('otherScaleMinLabel');
-const otherScaleMaxLabel = document.getElementById('otherScaleMaxLabel');
+const otherScaleMaxValueEl = document.getElementById('otherScaleMaxValue');
 
 const animateWindEl  = document.getElementById('animateWind');
 const windAmpEl      = document.getElementById('windAmp');
+const windAmpValueEl = document.getElementById('windAmpValue');
 const windSpeedEl    = document.getElementById('windSpeed');
-const windAmpLabel   = document.getElementById('windAmpLabel');
-const windSpeedLabel = document.getElementById('windSpeedLabel');
+const windSpeedValueEl = document.getElementById('windSpeedValue');
 
 /* ===================== Mobile Menu Toggle ===================== */
 function toggleMenu() {
@@ -165,96 +183,57 @@ tabs.forEach(btn=>{
 });
 
 /* ===================== UI helpers ===================== */
-function updateUIValues(){
-  const setText = (el, txt)=>{ if (el) el.textContent = txt; };
-  setText(levelsLabel, levelsEl ? levelsEl.value : '');
-  setText(lenLabel,    baseEl ? baseEl.value : '');
-  setText(lenScaleLabel, lenScaleEl ? Number(lenScaleEl.value).toFixed(2) : '');
-  setText(angleLabel,  angleEl ? angleEl.value : '');
-  setText(lenRandLabel,   lenRandEl ? Number(lenRandEl.value).toFixed(2) : '');
-  setText(angleRandLabel,   angleRandEl ? Number(angleRandEl.value).toFixed(2) : '');
-  setText(widthLabel,  baseWidthEl ? baseWidthEl.value : '');
-  setText(scaleLabel,  widthScaleEl ? Number(widthScaleEl.value).toFixed(2) : '');
-  setText(treeBlossomSizeLabel, treeBlossomSizeEl ? treeBlossomSizeEl.value : '');
-  setText(pathWidthLabel, pathWidthEl ? pathWidthEl.value : '');
-  setText(airbrushSizeLabel, airbrushSizeEl ? airbrushSizeEl.value : '');
-  setText(fernPointsLabel, fernPointsEl ? fernPointsEl.value : '');
-  setText(fernSizeLabel,   fernSizeEl ? Number(fernSizeEl.value).toFixed(2) : '');
-  setText(eraserSizeLabel, eraserSizeEl ? eraserSizeEl.value : '');
-  setText(flowerBlossomSizeLabel, flowerBlossomSizeEl ? flowerBlossomSizeEl.value : '');
-  setText(mountainDetailLabel, mountainDetailEl ? mountainDetailEl.value : '');
-  setText(mountainHeightLabel, mountainHeightEl ? mountainHeightEl.value : '');
-  setText(mountainJaggednessLabel, mountainJaggednessEl ? Number(mountainJaggednessEl.value).toFixed(2) : '');
+function bindSliderToInput(sliderId, inputId) {
+    const slider = document.getElementById(sliderId);
+    const input = document.getElementById(inputId);
+    if (!slider || !input) return;
 
-  setText(celestialSizeLabel, celestialSizeEl ? celestialSizeEl.value : '');
-  setText(celestialGlowLabel, celestialGlowEl ? celestialGlowEl.value : '');
-
-  if (svgFernThinEl && svgFernThinLabel) svgFernThinLabel.textContent = `${svgFernThinEl.value}×`;
-  if (windAmpEl && windAmpLabel)       windAmpLabel.textContent   = Number(windAmpEl.value).toFixed(0);
-  if (windSpeedEl && windSpeedLabel)   windSpeedLabel.textContent = Number(windSpeedEl.value).toFixed(2);
-  if (cloudSpeedEl && cloudSpeedLabel) cloudSpeedLabel.textContent = Number(cloudSpeedEl.value).toFixed(2);
-  if (cloudDriftEl && cloudDriftLabel)  cloudDriftLabel.textContent = Number(cloudDriftEl.value).toFixed(0);
-
-  if (snowIterEl && snowIterLabel)     snowIterLabel.textContent  = snowIterEl.value;
-  if (snowSizeEl && snowSizeLabel)     snowSizeLabel.textContent  = Number(snowSizeEl.value).toFixed(2);
-  if (snowStrokeEl && snowStrokeLabel) snowStrokeLabel.textContent= Number(snowStrokeEl.value).toFixed(1);
-
-  if (flowerIterEl && flowerIterLabel)     flowerIterLabel.textContent   = flowerIterEl.value;
-  if (flowerAngleEl && flowerAngleLabel)   flowerAngleLabel.textContent  = Number(flowerAngleEl.value).toFixed(0);
-  if (flowerStepEl && flowerStepLabel)     flowerStepLabel.textContent   = Number(flowerStepEl.value).toFixed(2);
-  if (flowerStrokeEl && flowerStrokeLabel) flowerStrokeLabel.textContent = Number(flowerStrokeEl.value).toFixed(1);
-
-  if (vineLengthEl && vineLengthLabel) vineLengthLabel.textContent = vineLengthEl.value;
-  if (vineNoiseEl && vineNoiseLabel)   vineNoiseLabel.textContent  = Number(vineNoiseEl.value).toFixed(3);
-  if (vineStrokeEl && vineStrokeLabel) vineStrokeLabel.textContent = Number(vineStrokeEl.value).toFixed(1);
-
-  if (cloudCountEl && cloudCountLabel) cloudCountLabel.textContent = cloudCountEl.value;
-  if (cloudMinDEl && cloudMinDLabel)   cloudMinDLabel.textContent  = cloudMinDEl.value;
-  if (cloudMaxDEl && cloudMaxDLabel)   cloudMaxDLabel.textContent  = cloudMaxDEl.value;
-  if (cloudMinWEl && cloudMinWLabel)   cloudMinWLabel.textContent  = Number(cloudMinWEl.value).toFixed(1);
-  if (cloudMaxWEl && cloudMaxWLabel)   cloudMaxWLabel.textContent  = Number(cloudMaxWEl.value).toFixed(1);
-  if (cloudBlurEl && cloudBlurLabel)   cloudBlurLabel.textContent  = cloudBlurEl.value;
-
-  if (otherScaleMinEl && otherScaleMinLabel) otherScaleMinLabel.textContent = `${Number(otherScaleMinEl.value).toFixed(2)}×`;
-  if (otherScaleMaxEl && otherScaleMaxLabel) otherScaleMaxLabel.textContent = `${Number(otherScaleMaxEl.value).toFixed(2)}×`;
-
-  if (newObjectAlphaSliderEl && newObjectAlphaLabelEl) newObjectAlphaLabelEl.textContent = Number(newObjectAlphaSliderEl.value).toFixed(2);
-  
-  if (playbackSpeedEl && playbackSpeedLabel) {
-      const speed = parseInt(playbackSpeedEl.value, 10);
-      let label = 'Medium';
-      if (speed > 800) label = 'Fast';
-      else if (speed < 200) label = 'Slow';
-      playbackSpeedLabel.textContent = label;
-  }
+    slider.addEventListener('input', () => input.value = slider.value);
+    input.addEventListener('change', () => {
+        let value = parseFloat(input.value);
+        const min = parseFloat(slider.min);
+        const max = parseFloat(slider.max);
+        if (value < min) value = min;
+        // Do not clamp to max, to allow user override
+        slider.value = Math.min(value, max);
+    });
 }
-const levelsLabel = document.getElementById('levelsLabel');
-const lenLabel    = document.getElementById('lenLabel');
-const lenScaleLabel = document.getElementById('lenScaleLabel');
-const angleLabel  = document.getElementById('angleLabel');
-const lenRandLabel   = document.getElementById('lenRandLabel');
-const angleRandLabel   = document.getElementById('angleRandLabel');
-const widthLabel  = document.getElementById('widthLabel');
-const scaleLabel  = document.getElementById('scaleLabel');
-const pathWidthLabel = document.getElementById('pathWidthLabel');
-const fernPointsLabel = document.getElementById('fernPointsLabel');
-const fernSizeLabel   = document.getElementById('fernSizeLabel');
-const eraserSizeLabel = document.getElementById('eraserSizeLabel');
 
-[
-  levelsEl,baseEl,lenScaleEl,angleEl,lenRandEl,angleRandEl,baseWidthEl,widthScaleEl,pathWidthEl,fernPointsEl,fernSizeEl,eraserSizeEl,
-  treeBlossomSizeEl, flowerBlossomSizeEl, airbrushSizeEl,
-  windAmpEl,windSpeedEl, svgFernThinEl,
-  cloudSpeedEl, cloudDriftEl,
-  snowIterEl,snowSizeEl,snowStrokeEl,
-  flowerIterEl,flowerAngleEl,flowerStepEl,flowerStrokeEl,
-  vineLengthEl,vineNoiseEl,vineStrokeEl,
-  cloudCountEl,cloudMinDEl,cloudMaxDEl,cloudMinWEl,cloudMaxWEl,cloudBlurEl,
-  mountainDetailEl, mountainHeightEl, mountainJaggednessEl,
-  otherScaleMinEl, otherScaleMaxEl, newObjectAlphaSliderEl, playbackSpeedEl,
-  celestialSizeEl, celestialGlowEl
-].filter(Boolean).forEach(el=>el.addEventListener('input',updateUIValues));
-updateUIValues();
+const bindings = [
+    ['levels', 'levelsValue'], ['baseLen', 'baseLenValue'], ['lenScale', 'lenScaleValue'],
+    ['angle', 'angleValue'], ['lenRand', 'lenRandValue'], ['angleRand', 'angleRandValue'],
+    ['baseWidth', 'baseWidthValue'], ['widthScale', 'widthScaleValue'], ['treeBlossomSize', 'treeBlossomSizeValue'],
+    ['fernPoints', 'fernPointsValue'], ['fernSize', 'fernSizeValue'],
+    ['pathWidth', 'pathWidthValue'], ['airbrushSize', 'airbrushSizeValue'],
+    ['mountainDetail', 'mountainDetailValue'], ['mountainHeight', 'mountainHeightValue'], ['mountainJaggedness', 'mountainJaggednessValue'],
+    ['celestialSize', 'celestialSizeValue'], ['celestialGlow', 'celestialGlowValue'],
+    ['snowIter', 'snowIterValue'], ['snowSize', 'snowSizeValue'], ['snowStroke', 'snowStrokeValue'],
+    ['flowerIter', 'flowerIterValue'], ['flowerAngle', 'flowerAngleValue'], ['flowerStep', 'flowerStepValue'], ['flowerStroke', 'flowerStrokeValue'],
+    ['flowerBlossomSize', 'flowerBlossomSizeValue'],
+    ['vineLength', 'vineLengthValue'], ['vineNoise', 'vineNoiseValue'], ['vineStroke', 'vineStrokeValue'],
+    ['cloudCount', 'cloudCountValue'], ['cloudMinD', 'cloudMinDValue'], ['cloudMaxD', 'cloudMaxDValue'],
+    ['cloudMinW', 'cloudMinWValue'], ['cloudMaxW', 'cloudMaxWValue'], ['cloudBlur', 'cloudBlurValue'],
+    ['cloudShadowX', 'cloudShadowXValue'], ['cloudShadowY', 'cloudShadowYValue'], ['cloudShadowAlpha', 'cloudShadowAlphaValue'],
+    ['cloudSpeed', 'cloudSpeedValue'], ['cloudDrift', 'cloudDriftValue'],
+    ['otherScaleMin', 'otherScaleMinValue'], ['otherScaleMax', 'otherScaleMaxValue'],
+    ['eraserSize', 'eraserSizeValue'],
+    ['newObjectAlphaSlider', 'newObjectAlphaValue'], ['levelAlpha', 'levelAlphaValue'],
+    ['playbackSpeed', 'playbackSpeedValue'], ['svgFernThin', 'svgFernThinValue'],
+    ['windAmp', 'windAmpValue'], ['windSpeed', 'windSpeedValue']
+];
+
+bindings.forEach(([sliderId, inputId]) => bindSliderToInput(sliderId, inputId));
+
+// This new function is called by the history (undo/redo) to sync the UI
+function syncInputsFromSliders() {
+    bindings.forEach(([sliderId, inputId]) => {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+        if (slider && input) {
+            input.value = slider.value;
+        }
+    });
+}
 
 function updateModeUI(){
   const mode = modeSelect ? modeSelect.value : 'tree';
@@ -270,7 +249,7 @@ function updateModeUI(){
   show('vineParams',   mode==='vine');
   show('cloudParams',  mode==='clouds');
   show('eraserParams', mode==='eraser');
-
+  
   if(levelEditBox) levelEditBox.style.display = (mode==='tree') ? levelEditBox.style.display : 'none';
 }
 if (modeSelect) modeSelect.addEventListener('change', updateModeUI);
@@ -301,6 +280,8 @@ if (enableGradientEl) {
 [backgroundColorEl, backgroundColor2El].filter(Boolean).forEach(el => {
     el.addEventListener('input', () => {
         if (!isAnimating()) redrawAll();
+    });
+    el.addEventListener('change', () => {
         pushHistory();
     });
 });
@@ -331,6 +312,7 @@ if (helpBtn) {
         } else {
             helpDisplay.style.display = 'none';
         }
+
     });
 
     controls.addEventListener('click', (e) => {
@@ -347,7 +329,7 @@ if (helpBtn) {
 
 function checkSessionSize() {
     if (!sessionWarningEl) return;
-    const sizeThreshold = 5000;
+    const sizeThreshold = 500;
     if (scene.length > sizeThreshold) {
         sessionWarningEl.textContent = `Warning: This session contains ${scene.length} objects and may be slow to save or reload on some devices.`;
         sessionWarningEl.style.display = 'block';
@@ -378,29 +360,29 @@ function initPaletteUI(){
     const input = document.createElement('input');
     input.type='color';
     input.value = branchPalette[i];
-    input.addEventListener('input', ()=>{
-      branchPalette[i] = input.value;
 
-      const applyToAll = applyAllEl && applyAllEl.checked;
-
-      if (applyToAll) {
-        trees.forEach(t => {
-            if (i < t.levels) {
-                t.branchColors[i] = input.value;
-            }
-        });
-      } else if (selectedTreeIndex != null) {
-        const t = trees[selectedTreeIndex];
-        if (i < t.levels) {
-            t.branchColors[i] = input.value;
+    const updateTreeColors = () => {
+        branchPalette[i] = input.value;
+        const applyToAll = applyAllEl && applyAllEl.checked;
+        if (applyToAll) {
+            trees.forEach(t => { if (i < t.levels) t.branchColors[i] = input.value; });
+        } else if (selectedTreeIndex != null) {
+            const t = trees[selectedTreeIndex];
+            if (i < t.levels) t.branchColors[i] = input.value;
         }
-      }
+    };
 
-      pushHistory();
-      if (!isAnimating()) {
-          redrawAll();
-      }
+    input.addEventListener('input', () => {
+        updateTreeColors();
+        if (!isAnimating()) redrawAll();
     });
+
+    input.addEventListener('change', () => {
+        updateTreeColors();
+        pushHistory();
+        if (typeof gtag === 'function') gtag('event', 'change_color', { 'target': 'palette_manual' });
+    });
+
     row.appendChild(lab); row.appendChild(input);
     branchPanel.appendChild(row);
     paletteInputs.push(input);
@@ -441,6 +423,7 @@ function initPresetsUI() {
         
         presetDiv.addEventListener('click', () => {
             applyPalettePreset(colorPresets[name]);
+            if (typeof gtag === 'function') gtag('event', 'change_preset', { 'preset_name': name });
         });
         presetDiv.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -490,12 +473,15 @@ function pickNonTreeColor(seed){
 if (levelAlphaEl){
   levelAlphaEl.addEventListener('input', ()=>{
     if(selectedTreeIndex == null) return;
-    const val = Number(levelAlphaEl.value); const lab = document.getElementById('levelAlphaLabel'); if (lab) lab.textContent = val.toFixed(2);
+    const val = Number(levelAlphaEl.value);
     const applyToAll = applyAllEl && applyAllEl.checked;
     if (applyToAll) { trees.forEach(t => { if (selectedLevelIndex < t.levels) { t.levelAlphas[selectedLevelIndex] = val; } });
     } else if (selectedTreeIndex != null) {
       const t = trees[selectedTreeIndex]; if (selectedLevelIndex < t.levels) { t.levelAlphas[selectedLevelIndex] = val; }
     } else { return; }
-    pushHistory(); if (!isAnimating()) redrawAll();
+    if (!isAnimating()) redrawAll();
+  });
+  levelAlphaEl.addEventListener('change', () => {
+      pushHistory();
   });
 }

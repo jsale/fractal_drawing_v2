@@ -119,43 +119,6 @@ function buildMountainRange(mtn) {
     mtn.points = points;
 }
 
-// ADD a new draw function to create mountain ranges
-function drawMountainRange(ctx, mtn) {
-    if (!mtn.points || mtn.points.length < 2) return;
-    ctx.save();
-    ctx.globalAlpha = mtn.alpha ?? 1.0;
-    ctx.fillStyle = mtn.color;
-    
-    ctx.beginPath();
-    ctx.moveTo(mtn.start.x, ctx.canvas.height);
-    ctx.lineTo(mtn.start.x, mtn.start.y);
-
-    if (mtn.isSmooth) {
-        // Use quadratic curves for a smooth spline effect
-        let pts = mtn.points;
-        for (let i = 0; i < pts.length - 1; i++) {
-            const p1 = pts[i];
-            const p2 = pts[i+1];
-            const xc = (p1.x + p2.x) / 2;
-            const yc = (p1.y + p2.y) / 2;
-            // The curve starts from the previous point, uses the current point as a control, and ends at the midpoint
-            ctx.quadraticCurveTo(p1.x, p1.y, xc, yc);
-        }
-        // Draw the final segment to the end point
-        ctx.lineTo(mtn.end.x, mtn.end.y);
-    } else {
-        // Original jagged line logic
-        for (const point of mtn.points) {
-            ctx.lineTo(point.x, point.y);
-        }
-    }
-
-    ctx.lineTo(mtn.end.x, ctx.canvas.height);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-}
-
 function buildTreeSegments(tree){
   const rand = mulberry32(tree.rngSeed);
   tree.segments = [];
@@ -174,8 +137,9 @@ function buildTreeSegments(tree){
     const x2 = x + len*Math.cos(ang);
     const y2 = y - len*Math.sin(ang);
     const idx = pushSeg({ level, len, baseAng: ang, parent: (parentIdx==null ? -1 : parentIdx), children: [], x1:x, y1:y, x2, y2 });
-
-    const red = (tree.lenScale ?? 0.68) + (rand()-0.5)*(tree.lenRand||0);
+    
+    const lenScale = tree.lenScale != null ? tree.lenScale : 0.68;
+    const red = lenScale + (rand()-0.5)*(tree.lenRand||0);
     const nl  = len * red;
     const jitter = (uniformJitter !== null) ? uniformJitter : (rand()-0.5)*(tree.angleRand||0)*0.15;
     const spread = (tree.angle||25)*Math.PI/180;
@@ -274,7 +238,7 @@ function buildVinePolyline(v){
 /* ===================== Draw Functions ===================== */
 function drawCelestialBody(ctx, body) {
     ctx.save();
-    ctx.globalAlpha = body.alpha ?? 1.0;
+    ctx.globalAlpha = body.alpha != null ? body.alpha : 1.0;
 
     // The glow is a shadow of the same color as the fill
     ctx.fillStyle = body.color;
@@ -297,7 +261,7 @@ function drawSinglePath(ctx, p) {
     
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.globalAlpha = p.alpha ?? 1.0;
+    ctx.globalAlpha = p.alpha != null ? p.alpha : 1.0;
     ctx.lineWidth = p.strokeWidth;
     
     if (p.isAirbrush) {
@@ -327,33 +291,70 @@ function drawSinglePath(ctx, p) {
 }
 
 function drawClouds(ctx, c){
-    ctx.save(); ctx.globalAlpha = c.alpha ?? 1.0;
-    ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.shadowBlur = c.blur || 0; ctx.shadowOffsetX = c.blur || 8; ctx.shadowOffsetY = c.blur || 8; ctx.shadowColor = c.shadowColor || '#555';
+    ctx.save(); 
+    const mainAlpha = c.alpha != null ? c.alpha : 1.0;
+    ctx.globalAlpha = mainAlpha;
+    ctx.lineCap='round'; 
+    ctx.lineJoin='round';
+    
+    // Draw the circles first, without shadow
     for (const k of c.circles){
-      ctx.strokeStyle = k.color || '#ffffff'; ctx.lineWidth   = k.w || 2;
-      ctx.beginPath(); ctx.arc(c.cx, c.cy, Math.max(0.5, k.r), 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = k.color || '#ffffff'; 
+      ctx.lineWidth   = k.w || 2;
+      ctx.beginPath(); 
+      ctx.arc(c.cx, c.cy, Math.max(0.5, k.r), 0, Math.PI*2); 
+      ctx.stroke();
     }
+
+    // Now, draw the shadow/highlight separately
+    ctx.globalAlpha = (c.shadowAlpha != null ? c.shadowAlpha : 1.0) * mainAlpha;
+    ctx.shadowBlur = c.blur || 0; 
+    ctx.shadowOffsetX = c.shadowX || 0; 
+    ctx.shadowOffsetY = c.shadowY || 0; 
+    ctx.shadowColor = c.shadowColor || '#555';
+    
+    // Redraw circles with a transparent stroke to only cast the shadow
+    for (const k of c.circles){
+      ctx.strokeStyle = 'rgba(0,0,0,0.01)'; // Near-invisible
+      ctx.lineWidth   = k.w || 2;
+      ctx.beginPath(); 
+      ctx.arc(c.cx, c.cy, Math.max(0.5, k.r), 0, Math.PI*2); 
+      ctx.stroke();
+    }
+    
     ctx.restore();
 }
 
 function drawAnimatedClouds(ctx, c, time) {
-    const speed = parseFloat(cloudSpeedEl.value);
-    const amp = parseFloat(cloudDriftEl.value);
+    const speed = parseFloat(cloudSpeedValueEl.value);
+    const amp = parseFloat(cloudDriftValueEl.value);
     const phase = (c.cx / ctx.canvas.width) * Math.PI * 2;
     const offsetX = amp * Math.sin(time * speed + phase);
 
     ctx.save();
-    ctx.globalAlpha = c.alpha ?? 1.0;
+    const mainAlpha = c.alpha != null ? c.alpha : 1.0;
+    ctx.globalAlpha = mainAlpha;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    
+    // Draw circles
+    for (const k of c.circles) {
+        ctx.strokeStyle = k.color || '#ffffff';
+        ctx.lineWidth = k.w || 2;
+        ctx.beginPath();
+        ctx.arc(c.cx + offsetX, c.cy, Math.max(0.5, k.r), 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
+    // Draw highlight
+    ctx.globalAlpha = (c.shadowAlpha != null ? c.shadowAlpha : 1.0) * mainAlpha;
     ctx.shadowBlur = c.blur || 0;
-    ctx.shadowOffsetX = c.blur || 8;
-    ctx.shadowOffsetY = c.blur || 8;
+    ctx.shadowOffsetX = c.shadowX || 0;
+    ctx.shadowOffsetY = c.shadowY || 0;
     ctx.shadowColor = c.shadowColor || '#555';
 
     for (const k of c.circles) {
-        ctx.strokeStyle = k.color || '#ffffff';
+        ctx.strokeStyle = 'rgba(0,0,0,0.01)';
         ctx.lineWidth = k.w || 2;
         ctx.beginPath();
         ctx.arc(c.cx + offsetX, c.cy, Math.max(0.5, k.r), 0, Math.PI * 2);
@@ -364,7 +365,9 @@ function drawAnimatedClouds(ctx, c, time) {
 
 function drawSnowflakes(ctx, s){
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.globalAlpha = s.alpha ?? 1.0; ctx.strokeStyle = s.color || '#a0d8ff'; ctx.lineWidth = s.stroke || 1.5;
+  ctx.globalAlpha = s.alpha != null ? s.alpha : 1.0; 
+  ctx.strokeStyle = s.color || '#a0d8ff'; 
+  ctx.lineWidth = s.stroke || 1.5;
   ctx.beginPath();
   for (const seg of s.segments){ ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); }
   ctx.stroke();
@@ -372,7 +375,7 @@ function drawSnowflakes(ctx, s){
 
 function drawFlowers(ctx, fl){
   ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.globalAlpha = fl.alpha ?? 1.0; 
+  ctx.globalAlpha = fl.alpha != null ? fl.alpha : 1.0; 
   
   ctx.strokeStyle = fl.color || '#ff88cc'; 
   ctx.lineWidth = fl.stroke || 1.5;
@@ -392,7 +395,9 @@ function drawFlowers(ctx, fl){
 
 function drawVines(ctx, v){
   ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.globalAlpha = v.alpha ?? 1.0; ctx.strokeStyle = v.color || '#8fd18f'; ctx.lineWidth = v.stroke || 2.0;
+  ctx.globalAlpha = v.alpha != null ? v.alpha : 1.0; 
+  ctx.strokeStyle = v.color || '#8fd18f'; 
+  ctx.lineWidth = v.stroke || 2.0;
   ctx.beginPath();
   const pts = v.points;
   if (pts.length>1){ ctx.moveTo(pts[0].x, pts[0].y); for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y); }
@@ -403,7 +408,8 @@ function drawTreeFromSegments(ctx, tree){
   const rand = mulberry32(tree.rngSeed);
   ctx.lineCap='round'; ctx.lineJoin='round';
   for(const seg of tree.segments){
-    const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(tree.widthScale ?? 0.68, seg.level));
+    const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
+    const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
     let stroke;
     if (tree.randomColor) {
         const colorIndex = Math.floor(rand() * tree.branchColors.length);
@@ -411,7 +417,7 @@ function drawTreeFromSegments(ctx, tree){
     } else {
         stroke = tree.branchColors[seg.level] || '#fff';
     }
-    const la = tree.levelAlphas[seg.level] ?? 1;
+    const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
     ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
     const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
     if(isHighlighted){
@@ -434,7 +440,7 @@ function drawTreeFromSegments(ctx, tree){
 function drawFernInstance(ctx, f){
   const rand = mulberry32(f.rngSeed);
   ctx.fillStyle = f.color || '#58c470'; 
-  ctx.globalAlpha = f.alpha ?? 1.0;
+  ctx.globalAlpha = f.alpha != null ? f.alpha : 1.0;
 
   let c = {
     p1: 0.01, a2: 0.85, b2: 0.04, c2: -0.04, d2: 0.85, f2: 1.6,
@@ -487,8 +493,8 @@ function applyEraser(ctx, stroke){
 }
 
 function drawAnimatedTree(ctx, tree, time) {
-    const amp   = windAmpEl ? (parseFloat(windAmpEl.value) * Math.PI/180) : 0;
-    const speed = windSpeedEl ? parseFloat(windSpeedEl.value) : 0.2;
+    const amp   = windAmpValueEl ? (parseFloat(windAmpValueEl.value) * Math.PI/180) : 0;
+    const speed = windSpeedValueEl ? parseFloat(windSpeedValueEl.value) : 0.2;
     const phase = (tree.rngSeed % 1000) / 1000 * Math.PI * 2;
     const rand = mulberry32(tree.rngSeed);
 
@@ -502,7 +508,8 @@ function drawAnimatedTree(ctx, tree, time) {
     function drawRec(seg, sx, sy){
       const ang = seg.baseAng + (swayForLevel.get(seg.level) || 0);
       const ex = sx + seg.len*Math.cos(ang), ey = sy - seg.len*Math.sin(ang);
-      const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(tree.widthScale ?? 0.68, seg.level));
+      const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
+      const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
       
       let stroke;
       if (tree.randomColor) {
@@ -512,7 +519,7 @@ function drawAnimatedTree(ctx, tree, time) {
           stroke = tree.branchColors[seg.level] || '#fff';
       }
       
-      const la = tree.levelAlphas[seg.level] ?? 1;
+      const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
       ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
       const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
       if (isHighlighted){
@@ -533,4 +540,36 @@ function drawAnimatedTree(ctx, tree, time) {
       for (const ci of seg.children){ drawRec(tree.segments[ci], ex, ey); }
     }
     for (const root of roots){ drawRec(root, tree.x, tree.y); }
+}
+
+function drawMountainRange(ctx, mtn) {
+    if (!mtn.points || mtn.points.length < 2) return;
+    ctx.save();
+    ctx.globalAlpha = mtn.alpha != null ? mtn.alpha : 1.0;
+    ctx.fillStyle = mtn.color;
+    
+    ctx.beginPath();
+    ctx.moveTo(mtn.start.x, ctx.canvas.height);
+    ctx.lineTo(mtn.start.x, mtn.start.y);
+
+    if (mtn.isSmooth) {
+        let pts = mtn.points;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p1 = pts[i];
+            const p2 = pts[i+1];
+            const xc = (p1.x + p2.x) / 2;
+            const yc = (p1.y + p2.y) / 2;
+            ctx.quadraticCurveTo(p1.x, p1.y, xc, yc);
+        }
+        ctx.lineTo(mtn.end.x, mtn.end.y);
+    } else {
+        for (const point of mtn.points) {
+            ctx.lineTo(point.x, point.y);
+        }
+    }
+
+    ctx.lineTo(mtn.end.x, ctx.canvas.height);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 }
