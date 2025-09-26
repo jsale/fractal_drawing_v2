@@ -55,7 +55,6 @@ function snapshot(){
         cloudDrift: cloudDriftEl.value,
         cloudShadowX: cloudShadowXEl.value,
         cloudShadowY: cloudShadowYEl.value,
-        cloudShadowAlpha: cloudShadowAlphaEl.value
     };
 }
 function pushHistory(){
@@ -73,7 +72,6 @@ function restoreFrom(state){
   cloudDriftEl.value = state.cloudDrift || '20';
   cloudShadowXEl.value = state.cloudShadowX || '8';
   cloudShadowYEl.value = state.cloudShadowY || '8';
-  cloudShadowAlphaEl.value = state.cloudShadowAlpha || '1';
 
 
   if(gradientControlsEl) gradientControlsEl.style.display = enableGradientEl.checked ? 'block' : 'none';
@@ -99,7 +97,7 @@ function restoreFrom(state){
 
   selectedTreeIndex = null; selectedLevelIndex = null;
   if (isAnimating()) { /* next frame draws */ } else { redrawAll(); }
-  checkSessionSize();
+  updateObjectCount();
 }
 function undo(){ if(histIndex>0){ histIndex--; restoreFrom(history[histIndex]); } }
 function redo(){ if(histIndex<history.length-1){ histIndex++; restoreFrom(history[histIndex]); } }
@@ -234,6 +232,20 @@ function getDateTimeStamp() {
     return `${year}_${month}_${day}_${hour}_${minute}_${second}`;
 }
 
+function updateObjectCount() {
+    if (!sessionInfoDisplayEl) return;
+    const count = scene.length;
+    sessionInfoDisplayEl.textContent = `Objects in scene: ${count}`;
+    
+    const sizeThreshold = 500;
+    if (count > sizeThreshold) {
+        sessionInfoDisplayEl.textContent += `. Warning: Large sessions may be slow to save or reload.`;
+        sessionInfoDisplayEl.style.color = '#facc15';
+    } else {
+        sessionInfoDisplayEl.style.color = 'var(--muted)';
+    }
+}
+
 function createMountainFromUI(start, end) {
     const mtn = {
         start: start,
@@ -244,7 +256,9 @@ function createMountainFromUI(start, end) {
         isSmooth: mountainSmoothEl.checked,
         color: pickNonTreeColor(nextStampSeed()),
         alpha: getNewObjectAlpha(),
-        points: []
+        points: [],
+        hasGradient: mountainGradientEl.checked,
+        color2: mountainGradientEl.checked ? mountainColor2El.value : null
     };
     buildMountainRange(mtn);
     return mtn;
@@ -264,26 +278,47 @@ function createCelestialFromUI(cx, cy) {
 
 function createTreeFromUI(x,y){
   const levels = parseInt(levelsValueEl.value, 10);
+  let baseAngle;
+  if (randomizeAnglePerTreeEl.checked) {
+      baseAngle = Math.random() * parseFloat(angleEl.max);
+  } else {
+      baseAngle = parseFloat(angleValueEl.value);
+  }
+
   const t = { 
     x, y, 
     baseLen: parseFloat(baseLenValueEl.value), 
     levels, 
     lenScale: parseFloat(lenScaleValueEl.value),
-    angle: parseFloat(angleValueEl.value), 
+    angle: baseAngle, 
     lenRand: parseFloat(lenRandValueEl.value),
     angleRand: parseFloat(angleRandValueEl.value),
     uniformAngleRand: uniformAngleRandEl.checked,
+    unifyLenPerLevel: unifyLenPerLevelEl.checked,
+    unifyAnglePerLevel: unifyAnglePerLevelEl.checked,
     baseWidth: parseFloat(baseWidthValueEl.value), 
     widthScale: parseFloat(widthScaleValueEl.value),
     branchColors: branchPalette.slice(0, levels), 
     levelAlphas: new Array(levels).fill(getNewObjectAlpha()),
     randomColor: randomBranchColorEl.checked,
+    randomColorPerLevel: randomColorPerLevelEl.checked,
+    levelColors: null,
     rngSeed: newSeed(), 
     segments: [],
     hasBlossoms: addTreeBlossomsEl.checked,
     blossomSize: parseFloat(treeBlossomSizeValueEl.value),
     blossomColor: treeBlossomColorEl.value
   };
+
+  if (t.randomColor && t.randomColorPerLevel) {
+      t.levelColors = [];
+      const rand = mulberry32(t.rngSeed);
+      for (let i = 0; i < levels; i++) {
+          const colorIndex = Math.floor(rand() * branchPalette.length);
+          t.levelColors.push(branchPalette[colorIndex]);
+      }
+  }
+
   buildTreeSegments(t);
   return t;
 }
@@ -323,29 +358,32 @@ function createCloudFromUI(cx, cy){
   let dmin = parseFloat(cloudMinDValueEl.value);
   let dmax = parseFloat(cloudMaxDValueEl.value);
   if (dmax < dmin) [dmin, dmax] = [dmax, dmin];
-
-  let wmin = parseFloat(cloudMinWValueEl.value);
-  let wmax = parseFloat(cloudMaxWValueEl.value);
-  if (wmax < wmin) [wmin, wmax] = [wmax, wmin];
+  const placementRadius = dmax / 2;
 
   const blur = parseInt(cloudBlurValueEl.value, 10);
-  const shadowColor = (cloudShadowEl && cloudShadowEl.value) || '#555555';
+  const shadowColor = (cloudShadowColorEl && cloudShadowColorEl.value) || '#BEBEBE';
   const shadowX = parseFloat(cloudShadowXValueEl.value);
   const shadowY = parseFloat(cloudShadowYValueEl.value);
-  const shadowAlpha = parseFloat(cloudShadowAlphaValueEl.value);
 
   const circles = [];
   const seed = nextStampSeed();
   const colorSeed = seed;
-  for (let i=0;i<count;i++){
-    const d = dmin + (dmax - dmin)*randUnit();
+  const rand = mulberry32(seed);
+
+  for (let i = 0; i < count; i++){
+    const d = dmin + (dmax - dmin) * rand();
     const r = d * 0.5;
-    const w = wmin + (wmax - wmin)*randUnit();
     const color = pickNonTreeColor(colorSeed + i);
-    circles.push({ r, w, color });
+    
+    const angle = rand() * 2 * Math.PI;
+    const radius = Math.pow(rand(), 0.5) * placementRadius;
+    const offsetX = Math.cos(angle) * radius;
+    const offsetY = Math.sin(angle) * radius;
+
+    circles.push({ r, color, offsetX, offsetY });
   }
 
-  return { cx, cy, circles, blur, shadowColor, shadowX, shadowY, shadowAlpha, alpha: getNewObjectAlpha() };
+  return { cx, cy, circles, blur, shadowColor, shadowX, shadowY, alpha: getNewObjectAlpha() };
 }
 
 function createFernFromUI(cx, cy) {
@@ -408,18 +446,26 @@ function onPointerDown(e){
     eraserCtx.clearRect(0,0,eraserCanvas.width,eraserCanvas.height); 
     spawnAt(p);
   } else if (mode === 'tree') {
-    hitTestBranch(p);
-    if (selectedTreeIndex === null) { 
-        spawnAt(p); 
-    } else {
-        if (levelEditBox){
-            levelEditBox.style.display='block'; editingLevelText.textContent = 'Level ' + (selectedLevelIndex+1);
-            levelAlphaEl.value = trees[selectedTreeIndex].levelAlphas[selectedLevelIndex] || 1;
-            levelAlphaValueEl.value = levelAlphaEl.value;
-        }
-        if (!isAnimating()) redrawAll();
-        drawing = false;
-    }
+      if (enableBranchSelectionEl.checked) {
+          hitTestBranch(p);
+          if (selectedTreeIndex === null) { 
+              spawnAt(p); 
+          } else {
+              if (levelEditBox){
+                  levelEditBox.style.display='block'; editingLevelText.textContent = 'Level ' + (selectedLevelIndex+1);
+                  levelAlphaEl.value = trees[selectedTreeIndex].levelAlphas[selectedLevelIndex] || 1;
+                  levelAlphaValueEl.value = levelAlphaEl.value;
+              }
+              if (!isAnimating()) redrawAll();
+              drawing = false;
+          }
+      } else {
+          selectedTreeIndex = null;
+          selectedLevelIndex = null;
+          if(levelEditBox) levelEditBox.style.display = 'none';
+          if (!isAnimating()) redrawAll();
+          spawnAt(p);
+      }
   } else { 
     spawnAt(p); 
   }
@@ -475,7 +521,7 @@ function onPointerEnd(e){
       mountains.push(mtn);
       scene.push({type: 'mountain', data: mtn});
       pushHistory();
-      checkSessionSize();
+      updateObjectCount();
       if (!isAnimating()) redrawAll();
       eraserCtx.clearRect(0,0,eraserCanvas.width, eraserCanvas.height);
       dragStartPoint = null;
@@ -492,6 +538,7 @@ function onPointerEnd(e){
     else paths.push(currentStroke);
     
     pushHistory();
+    updateObjectCount();
     eraserCtx.clearRect(0,0,eraserCanvas.width,eraserCanvas.height);
     currentStroke = null;
     redrawAll();
@@ -504,14 +551,38 @@ function spawnAt(p){
   const mode = modeSelect.value;
   let newOp = null;
 
-  if(mode==='path'){
+  if (mode==='path') {
+      const isCycleMode = nonTreeColorModeEl.value === 'cycle';
+      const cyclePerSegment = isCycleMode && pathSegmentCycleEl.checked;
+      let colorMode, pathSeed, singleColorValue, pathPalette;
+      pathSeed = null;
+      pathPalette = null;
+
+      if (isCycleMode) {
+          if (cyclePerSegment) {
+              colorMode = 'cycleSegment';
+              singleColorValue = null;
+              pathSeed = newSeed();
+              pathPalette = branchPalette.slice();
+          } else {
+              colorMode = 'cyclePath';
+              singleColorValue = pickNonTreeColor(newSeed());
+          }
+      } else {
+          colorMode = 'single';
+          singleColorValue = singleColorEl.value;
+      }
+      
       currentStroke = { 
         points:[p], 
         strokeWidth: parseInt(pathWidthValueEl.value, 10), 
         alpha: getNewObjectAlpha(),
-        singleColor: singleColorEl.value,
         isAirbrush: pathAirbrushEl.checked,
-        airbrushSize: parseInt(airbrushSizeValueEl.value, 10)
+        airbrushSize: parseInt(airbrushSizeValueEl.value, 10),
+        colorMode: colorMode,
+        singleColor: singleColorValue,
+        rngSeed: pathSeed,
+        palette: pathPalette
       };
       drawSinglePath(eraserCtx, currentStroke);
       return;
@@ -560,7 +631,7 @@ function spawnAt(p){
       if (!isAnimating()) {
         redrawAll();
       }
-      checkSessionSize();
+      updateObjectCount();
   }
 }
 
@@ -577,7 +648,7 @@ const randomizeTreeBtn = document.getElementById('randomizeTreeBtn');
 
 if (undoBtn) undoBtn.addEventListener('click', undo);
 if (redoBtn) redoBtn.addEventListener('click', redo);
-if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; mountains=[]; celestials=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); checkSessionSize(); if (typeof gtag === 'function') gtag('event', 'clear_canvas'); });
+if (clearBtn) clearBtn.addEventListener('click', ()=>{ scene=[]; trees=[]; ferns=[]; paths=[]; mountains=[]; celestials=[]; snowflakes=[]; flowers=[]; vines=[]; clouds=[]; eraserStrokes=[]; selectedTreeIndex=null; selectedLevelIndex=null; pushHistory(); if (!isAnimating()) redrawAll(); updateObjectCount(); if (typeof gtag === 'function') gtag('event', 'clear_canvas'); });
 if (saveBtn) saveBtn.addEventListener('click', ()=>{ const out = document.createElement('canvas'); out.width = treeCanvas.width; out.height = treeCanvas.height; const octx = out.getContext('2d'); drawBackground(octx); octx.drawImage(treeCanvas,0,0); const link = document.createElement('a'); link.download=`fractal-forest_${getDateTimeStamp()}.png`; link.href = out.toDataURL('image/png'); link.click(); if (typeof gtag === 'function') gtag('event', 'save_artwork', { 'format': 'png' }); });
 if (playbackBtn) playbackBtn.addEventListener('click', playHistory);
 if (exportSessionBtn) exportSessionBtn.addEventListener('click', exportSession);
@@ -605,28 +676,49 @@ if (randomizeTreeBtn) {
     });
 }
 
-function playHistory() {
-    if (isPlaying || history.length < 2) return;
-    isPlaying = true;
-    playbackBtn.disabled = true;
+let playbackIndex = 0;
+let playbackTimeoutId = null;
 
-    if (typeof gtag === 'function') gtag('event', 'playback_history');
-
-    let i = 0;
-    function nextFrame() {
-        if (i >= history.length) {
-            isPlaying = false;
-            playbackBtn.disabled = false;
-            return;
-        }
-        restoreFrom(history[i]);
-        i++;
-        const delay = 1001 - parseInt(playbackSpeedValueEl.value, 10);
-        setTimeout(nextFrame, delay);
+function nextFrame() {
+    if (playbackIndex >= history.length) {
+        playbackBtn.textContent = 'Playback';
+        playbackTimeoutId = null;
+        if (typeof gtag === 'function') gtag('event', 'playback_finish');
+        return;
     }
-    
-    restoreFrom({ bg1: '#000000', bg2: '#071022', gradient: false, palette: branchPalette, scene: [], cloudAnim: false, cloudSpeed: '0.1', cloudDrift: '20' });
-    setTimeout(nextFrame, 500);
+
+    restoreFrom(history[playbackIndex]);
+    playbackIndex++;
+
+    const delay = 1001 - parseInt(playbackSpeedValueEl.value, 10);
+    playbackTimeoutId = setTimeout(nextFrame, delay);
+}
+
+function playHistory() {
+    const btn = playbackBtn;
+    if (!btn) return;
+
+    if (btn.textContent === 'Playback') {
+        if (history.length < 2) return;
+        playbackIndex = 0;
+        btn.textContent = 'Pause';
+        if (typeof gtag === 'function') gtag('event', 'playback_start');
+        
+        restoreFrom({ bg1: '#000000', bg2: '#071022', gradient: false, palette: branchPalette, scene: [], cloudAnim: false, cloudSpeed: '0.1', cloudDrift: '20' });
+        
+        playbackTimeoutId = setTimeout(nextFrame, 500);
+
+    } else if (btn.textContent === 'Pause') {
+        clearTimeout(playbackTimeoutId);
+        playbackTimeoutId = null;
+        btn.textContent = 'Resume';
+        if (typeof gtag === 'function') gtag('event', 'playback_pause');
+
+    } else if (btn.textContent === 'Resume') {
+        btn.textContent = 'Pause';
+        if (typeof gtag === 'function') gtag('event', 'playback_resume');
+        nextFrame();
+    }
 }
 
 function exportSession() {
@@ -719,19 +811,123 @@ function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 function buildSVG(){
   const w = treeCanvas.width, h = treeCanvas.height; const thinStep = Math.max(1, parseInt(svgFernThinValueEl.value, 10));
   const parts = []; parts.push(`<?xml version="1.0" encoding="UTF-8"?>`); parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`); 
+  
+  let defs = [];
+  let celestials_glow_defs = '';
+  celestials.forEach((body, i) => {
+      const glowAmount = body.glow / 2; // Approximate mapping from canvas shadowBlur to SVG stdDeviation
+      if (glowAmount > 0) {
+          celestials_glow_defs += `<filter id="glow-${i}"><feGaussianBlur stdDeviation="${glowAmount}" /></filter>`;
+      }
+  });
+  if (celestials_glow_defs) defs.push(celestials_glow_defs);
+  
+  let mountains_grad_defs = '';
+  mountains.forEach((mtn, i) => {
+    if (mtn.hasGradient && mtn.color2) {
+      let minY = h;
+      for (const point of mtn.points) { if (point.y < minY) minY = point.y; }
+      if (mtn.start.y < minY) minY = mtn.start.y;
+      if (mtn.end.y < minY) minY = mtn.end.y;
+      mountains_grad_defs += `<linearGradient id="mtn-grad-${i}" x1="0" y1="${minY}" x2="0" y2="${h}" gradientUnits="userSpaceOnUse">
+        <stop stop-color="${escapeAttr(mtn.color)}" />
+        <stop offset="1" stop-color="${escapeAttr(mtn.color2)}" />
+      </linearGradient>`;
+    }
+  });
+  if (mountains_grad_defs) defs.push(mountains_grad_defs);
+
   if (enableGradientEl.checked) {
-    parts.push(`<defs><linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:${escapeAttr(backgroundColorEl.value)};" /><stop offset="100%" style="stop-color:${escapeAttr(backgroundColor2El.value)};" /></linearGradient></defs>`);
+    defs.push(`<linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:${escapeAttr(backgroundColorEl.value)};" /><stop offset="100%" style="stop-color:${escapeAttr(backgroundColor2El.value)};" /></linearGradient>`);
+  }
+  if (defs.length > 0) { parts.push(`<defs>${defs.join('')}</defs>`); }
+  
+  if (enableGradientEl.checked) {
     parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="url(#bg-grad)"/>`);
   } else {
     parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${escapeAttr(backgroundColorEl.value)}"/>`);
   }
+
+  parts.push(`<g id="celestials">`);
+  celestials.forEach((body, i) => {
+    const glowAmount = body.glow / 2;
+    if (glowAmount > 0) {
+        // Draw a blurred circle for the glow
+        parts.push(`<circle cx="${body.cx}" cy="${body.cy}" r="${body.size}" fill="${escapeAttr(body.color)}" filter="url(#glow-${i})" opacity="${body.alpha ?? 1}"/>`);
+    }
+    // Draw the main circle on top
+    parts.push(`<circle cx="${body.cx}" cy="${body.cy}" r="${body.size}" fill="${escapeAttr(body.color)}" opacity="${body.alpha ?? 1}"/>`);
+  });
+  parts.push(`</g>`);
+  
+  parts.push(`<g id="mountains">`);
+  mountains.forEach((mtn, i) => {
+    let pointsStr = `${mtn.start.x},${h} ${mtn.start.x},${mtn.start.y} `;
+    pointsStr += mtn.points.map(p => `${p.x},${p.y}`).join(' ');
+    pointsStr += ` ${mtn.end.x},${mtn.end.y} ${mtn.end.x},${h}`;
+    const fill = mtn.hasGradient ? `url(#mtn-grad-${i})` : escapeAttr(mtn.color);
+    parts.push(`<polygon points="${pointsStr}" fill="${fill}" opacity="${mtn.alpha ?? 1}"/>`);
+  });
+  parts.push(`</g>`);
+
   parts.push(`<g id="ferns">`); for (const f of ferns){ parts.push(`<g fill="${escapeAttr(f.color || '#58c470')}" fill-opacity="${f.alpha ?? 1}" shape-rendering="crispEdges">`); const rand = mulberry32(f.rngSeed); let x=0,y=0; for(let i=0;i<f.points;i++){ const r = rand(); let nx, ny; if (r<0.01){ nx=0; ny=0.16*y; } else if (r<0.86){ nx=0.85*x + 0.04*y; ny=-0.04*x + 0.85*y + 1.6; } else if (r<0.93){ nx=0.2*x - 0.26*y; ny=0.23*x + 0.22*y + 1.6; } else { nx=-0.15*x + 0.28*y; ny=0.26*x + 0.24*y + 0.44; } x=nx; y=ny; if (i % thinStep !== 0) continue; const px = Math.round(f.cx + x*f.size), py = Math.round(f.cy - y*f.size); parts.push(`<rect x="${px}" y="${py}" width="1" height="1"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
-  parts.push(`<g id="paths" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for(const p of paths){ if(p.colorMode === 'single'){ parts.push(`<polyline points="${p.points.map(pt=>`${pt.x},${pt.y}`).join(' ')}" stroke="${escapeAttr(p.singleColor)}" stroke-width="${p.strokeWidth}" stroke-opacity="${p.alpha ?? 1}"/>`); } else { if(!branchPalette || branchPalette.length === 0) continue; parts.push(`<g stroke-width="${p.strokeWidth}" stroke-opacity="${p.alpha ?? 1}">`); for(let i=0; i<p.points.length-1; i++){ parts.push(`<line x1="${p.points[i].x}" y1="${p.points[i].y}" x2="${p.points[i+1].x}" y2="${p.points[i+1].y}" stroke="${escapeAttr(branchPalette[i % branchPalette.length])}"/>`); } parts.push(`</g>`); } } parts.push(`</g>`);
+  parts.push(`<g id="paths" stroke-linecap="round" stroke-linejoin="round" fill="none">`);
+  for (const p of paths) {
+      if (p.colorMode === 'cycleSegment') {
+          const rand = mulberry32(p.rngSeed);
+          const pal = p.palette;
+          if (!pal || pal.length === 0) continue;
+          parts.push(`<g stroke-width="${p.strokeWidth}" stroke-opacity="${p.alpha ?? 1}">`);
+          for (let i = 0; i < p.points.length - 1; i++) {
+              const idx = Math.floor(rand() * pal.length);
+              parts.push(`<line x1="${p.points[i].x}" y1="${p.points[i].y}" x2="${p.points[i+1].x}" y2="${p.points[i+1].y}" stroke="${escapeAttr(pal[idx])}"/>`);
+          }
+          parts.push(`</g>`);
+      } else {
+          parts.push(`<polyline points="${p.points.map(pt=>`${pt.x},${pt.y}`).join(' ')}" stroke="${escapeAttr(p.singleColor)}" stroke-width="${p.strokeWidth}" stroke-opacity="${p.alpha ?? 1}"/>`);
+      }
+  }
+  parts.push(`</g>`);
   parts.push(`<g id="snowflakes" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const s of snowflakes){ parts.push(`<g class="snowflake" opacity="${s.alpha ?? 1}" stroke="${escapeAttr(s.color || '#a0d8ff')}" stroke-width="${s.stroke || 1.5}">`); for (const seg of s.segments){ parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
   parts.push(`<g id="flowers" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const fl of flowers){ parts.push(`<g class="flower" opacity="${fl.alpha ?? 1}" stroke="${escapeAttr(fl.color || '#ff88cc')}" stroke-width="${fl.stroke || 1.5}">`); for (const seg of fl.segments){ parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
   parts.push(`<g id="vines" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const v of vines){ parts.push(`<polyline class="vine" points="${v.points.map(pt=>`${pt.x},${pt.y}`).join(' ')}" stroke="${escapeAttr(v.color || '#8fd18f')}" stroke-width="${v.stroke || 2}" stroke-opacity="${v.alpha ?? 1}" fill="none"/>`); } parts.push(`</g>`);
-  parts.push(`<g id="clouds" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const c of clouds){ parts.push(`<g class="cloud" opacity="${c.alpha ?? 1}">`); for (const k of c.circles){ parts.push(`<circle cx="${c.cx}" cy="${c.cy}" r="${Math.max(0.5,k.r)}" stroke="${escapeAttr(k.color || '#ffffff')}" stroke-width="${k.w || 2}"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
-  parts.push(`<g id="trees" stroke-linecap="round" stroke-linejoin="round" fill="none">`); for (const t of trees){ const buckets = new Map(); for (const seg of t.segments){ if (!buckets.has(seg.level)) buckets.set(seg.level, []); buckets.get(seg.level).push(seg); } parts.push(`<g class="tree">`); for (const [lvl, arr] of buckets){ const stroke = t.branchColors[lvl] || '#ffffff', la = t.levelAlphas[lvl] ?? 1, op = Math.max(0, Math.min(1, la)); parts.push(`<g data-level="${lvl}" stroke="${escapeAttr(stroke)}" stroke-opacity="${op}" fill="none">`); for (const seg of arr){ const width = Math.max(0.1, (t.baseWidth || 12) * Math.pow(t.widthScale ?? 0.68, seg.level)); parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}" stroke-width="${width}"/>`); } parts.push(`</g>`); } parts.push(`</g>`); } parts.push(`</g>`);
+  parts.push(`<g id="clouds">`); for (const c of clouds){ parts.push(`<g class="cloud" opacity="${c.alpha ?? 1}">`); for (const k of c.circles){ parts.push(`<circle cx="${c.cx + k.offsetX}" cy="${c.cy + k.offsetY}" r="${Math.max(0.5,k.r)}" fill="${escapeAttr(k.color || '#ffffff')}"/>`); } parts.push(`</g>`); } parts.push(`</g>`);
+  parts.push(`<g id="trees" stroke-linecap="round" stroke-linejoin="round" fill="none">`);
+  for (const t of trees) {
+      const rand = mulberry32(t.rngSeed);
+      parts.push(`<g class="tree">`);
+      if (t.randomColor && !t.randomColorPerLevel) {
+          for (const seg of t.segments) {
+              const colorIndex = Math.floor(rand() * t.branchColors.length);
+              const stroke = t.branchColors[colorIndex];
+              const la = t.levelAlphas[seg.level] ?? 1;
+              const op = Math.max(0, Math.min(1, la));
+              const width = Math.max(0.1, (t.baseWidth || 12) * Math.pow(t.widthScale ?? 0.68, seg.level));
+              parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}" stroke="${escapeAttr(stroke)}" stroke-opacity="${op}" stroke-width="${width}"/>`);
+          }
+      } else {
+          const buckets = new Map();
+          for (const seg of t.segments){ if (!buckets.has(seg.level)) buckets.set(seg.level, []); buckets.get(seg.level).push(seg); }
+          for (const [lvl, arr] of buckets) {
+              let stroke;
+              if (t.randomColor && t.randomColorPerLevel && t.levelColors) {
+                  stroke = t.levelColors[lvl] || '#ffffff';
+              } else {
+                  stroke = t.branchColors[lvl] || '#ffffff';
+              }
+              const la = t.levelAlphas[lvl] ?? 1;
+              const op = Math.max(0, Math.min(1, la));
+              parts.push(`<g data-level="${lvl}" stroke="${escapeAttr(stroke)}" stroke-opacity="${op}" fill="none">`);
+              for (const seg of arr){
+                  const width = Math.max(0.1, (t.baseWidth || 12) * Math.pow(t.widthScale ?? 0.68, seg.level));
+                  parts.push(`<line x1="${seg.x1}" y1="${seg.y1}" x2="${seg.x2}" y2="${seg.y2}" stroke-width="${width}"/>`);
+              }
+              parts.push(`</g>`);
+          }
+      }
+      parts.push(`</g>`);
+  }
+  parts.push(`</g>`);
   parts.push(`</svg>`); return parts.join('\n');
 }
 if (exportSvgBtn) exportSvgBtn.addEventListener('click', ()=> { download(`fractal-forest_${getDateTimeStamp()}.svg`, buildSVG()); if (typeof gtag === 'function') gtag('event', 'save_artwork', { 'format': 'svg' }); });
@@ -751,6 +947,7 @@ window.addEventListener('keydown', (e)=>{
   initPresetsUI();
   updateNonTreeColorUI();
   resizeCanvases();
+  updateObjectCount();
   
   const animControls = [animateWindEl, windAmpEl, windSpeedEl, animateCloudsEl, cloudSpeedEl, cloudDriftEl];
   animControls.filter(Boolean).forEach(el => {

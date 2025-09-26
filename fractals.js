@@ -124,30 +124,58 @@ function buildTreeSegments(tree){
   tree.segments = [];
   let segIndex = -1;
   
-  const uniformJitter = tree.uniformAngleRand ? (rand()-0.5)*(tree.angleRand||0)*0.15 : null;
+  const lenRandMap = [];
+  if (tree.unifyLenPerLevel) {
+      for (let i = 0; i < tree.levels; i++) {
+          lenRandMap[i] = (rand() - 0.5) * (tree.lenRand || 0);
+      }
+  }
+
+  const angleRandMap = [];
+  if (tree.unifyAnglePerLevel) {
+      for (let i = 0; i < tree.levels; i++) {
+          angleRandMap[i] = (rand() - 0.5) * (tree.angleRand || 0) * 0.15;
+      }
+  }
+  
+  const uniformJitter = tree.uniformAngleRand ? (rand() - 0.5) * (tree.angleRand || 0) * 0.15 : null;
 
   function pushSeg(obj){
     tree.segments.push(obj);
     return (++segIndex);
   }
 
-  function branch(x,y,len,ang,depth,level,parentIdx){
-    if(depth<=0 || len<0.6) return null;
+  function branch(x, y, len, ang, depth, level, parentIdx){
+    if(depth <= 0 || len < 0.6) return null;
 
-    const x2 = x + len*Math.cos(ang);
-    const y2 = y - len*Math.sin(ang);
-    const idx = pushSeg({ level, len, baseAng: ang, parent: (parentIdx==null ? -1 : parentIdx), children: [], x1:x, y1:y, x2, y2 });
+    const x2 = x + len * Math.cos(ang);
+    const y2 = y - len * Math.sin(ang);
+    const idx = pushSeg({ level, len, baseAng: ang, parent: (parentIdx == null ? -1 : parentIdx), children: [], x1:x, y1:y, x2, y2 });
     
+    let lenRandomness;
+    if (tree.unifyLenPerLevel) {
+        lenRandomness = lenRandMap[level] || 0;
+    } else {
+        lenRandomness = (rand() - 0.5) * (tree.lenRand || 0);
+    }
     const lenScale = tree.lenScale != null ? tree.lenScale : 0.68;
-    const red = lenScale + (rand()-0.5)*(tree.lenRand||0);
-    const nl  = len * red;
-    const jitter = (uniformJitter !== null) ? uniformJitter : (rand()-0.5)*(tree.angleRand||0)*0.15;
-    const spread = (tree.angle||25)*Math.PI/180;
+    const red = lenScale + lenRandomness;
+    const nl = len * red;
 
-    const leftIdx  = branch(x2,y2,nl, ang - spread + jitter, depth-1, level+1, idx);
-    const rightIdx = branch(x2,y2,nl, ang + spread + jitter, depth-1, level+1, idx);
-    if (leftIdx!=null)  tree.segments[idx].children.push(leftIdx);
-    if (rightIdx!=null) tree.segments[idx].children.push(rightIdx);
+    let jitter;
+    if (uniformJitter !== null) {
+        jitter = uniformJitter;
+    } else if (tree.unifyAnglePerLevel) {
+        jitter = angleRandMap[level] || 0;
+    } else {
+        jitter = (rand() - 0.5) * (tree.angleRand || 0) * 0.15;
+    }
+    const spread = (tree.angle || 25) * Math.PI / 180;
+
+    const leftIdx  = branch(x2, y2, nl, ang - spread + jitter, depth - 1, level + 1, idx);
+    const rightIdx = branch(x2, y2, nl, ang + spread + jitter, depth - 1, level + 1, idx);
+    if (leftIdx != null)  tree.segments[idx].children.push(leftIdx);
+    if (rightIdx != null) tree.segments[idx].children.push(rightIdx);
     return idx;
   }
 
@@ -258,70 +286,68 @@ function drawSinglePath(ctx, p) {
     if (!p || !p.points || p.points.length === 0) return;
     
     ctx.save();
-    
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.globalAlpha = p.alpha != null ? p.alpha : 1.0;
     ctx.lineWidth = p.strokeWidth;
     
-    if (p.isAirbrush) {
-        ctx.strokeStyle = p.singleColor;
-        ctx.shadowColor = p.singleColor;
-        ctx.shadowBlur = p.airbrushSize;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-    } else {
-        ctx.strokeStyle = p.singleColor;
+    if (p.colorMode === 'cycleSegment') {
         ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-    }
+        const rand = mulberry32(p.rngSeed);
+        const pal = p.palette;
+        if (!pal || pal.length === 0) { ctx.restore(); return; }
 
-    ctx.beginPath();
-    ctx.moveTo(p.points[0].x, p.points[0].y);
-    for (let i = 1; i < p.points.length; i++) {
-        ctx.lineTo(p.points[i].x, p.points[i].y);
+        for (let i = 0; i < p.points.length - 1; i++) {
+            const idx = Math.floor(rand() * pal.length);
+            ctx.strokeStyle = pal[idx];
+            ctx.beginPath();
+            ctx.moveTo(p.points[i].x, p.points[i].y);
+            ctx.lineTo(p.points[i+1].x, p.points[i+1].y);
+            ctx.stroke();
+        }
+
+    } else { // Covers 'single' and 'cyclePath' modes
+        ctx.strokeStyle = p.singleColor;
+        if (p.isAirbrush) {
+            ctx.shadowColor = p.singleColor;
+            ctx.shadowBlur = p.airbrushSize;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(p.points[0].x, p.points[0].y);
+        for (let i = 1; i < p.points.length; i++) {
+            ctx.lineTo(p.points[i].x, p.points[i].y);
+        }
+        if (p.points.length === 1) {
+            ctx.lineTo(p.points[0].x + 0.5, p.points[0].y + 0.5);
+        }
+        ctx.stroke();
     }
-    if (p.points.length === 1) {
-        ctx.lineTo(p.points[0].x + 0.5, p.points[0].y + 0.5);
-    }
-    ctx.stroke();
 
     ctx.restore();
 }
 
-function drawClouds(ctx, c){
-    ctx.save(); 
-    const mainAlpha = c.alpha != null ? c.alpha : 1.0;
-    ctx.globalAlpha = mainAlpha;
-    ctx.lineCap='round'; 
-    ctx.lineJoin='round';
-    
-    // Draw the circles first, without shadow
-    for (const k of c.circles){
-      ctx.strokeStyle = k.color || '#ffffff'; 
-      ctx.lineWidth   = k.w || 2;
-      ctx.beginPath(); 
-      ctx.arc(c.cx, c.cy, Math.max(0.5, k.r), 0, Math.PI*2); 
-      ctx.stroke();
-    }
+function drawClouds(ctx, c) {
+    ctx.save();
+    ctx.globalAlpha = c.alpha != null ? c.alpha : 1.0;
 
-    // Now, draw the shadow/highlight separately
-    ctx.globalAlpha = (c.shadowAlpha != null ? c.shadowAlpha : 1.0) * mainAlpha;
-    ctx.shadowBlur = c.blur || 0; 
-    ctx.shadowOffsetX = c.shadowX || 0; 
-    ctx.shadowOffsetY = c.shadowY || 0; 
+    // Set highlight properties. The shadow acts as the highlight.
+    ctx.shadowBlur = c.blur || 0;
+    ctx.shadowOffsetX = c.shadowX || 0;
+    ctx.shadowOffsetY = c.shadowY || 0;
     ctx.shadowColor = c.shadowColor || '#555';
-    
-    // Redraw circles with a transparent stroke to only cast the shadow
-    for (const k of c.circles){
-      ctx.strokeStyle = 'rgba(0,0,0,0.01)'; // Near-invisible
-      ctx.lineWidth   = k.w || 2;
-      ctx.beginPath(); 
-      ctx.arc(c.cx, c.cy, Math.max(0.5, k.r), 0, Math.PI*2); 
-      ctx.stroke();
+
+    // Draw the filled circles, each casting a highlight.
+    for (const k of c.circles) {
+        ctx.fillStyle = k.color || '#ffffff';
+        ctx.beginPath();
+        ctx.arc(c.cx + k.offsetX, c.cy + k.offsetY, Math.max(0.5, k.r), 0, Math.PI * 2);
+        ctx.fill();
     }
-    
     ctx.restore();
 }
 
@@ -329,36 +355,23 @@ function drawAnimatedClouds(ctx, c, time) {
     const speed = parseFloat(cloudSpeedValueEl.value);
     const amp = parseFloat(cloudDriftValueEl.value);
     const phase = (c.cx / ctx.canvas.width) * Math.PI * 2;
-    const offsetX = amp * Math.sin(time * speed + phase);
+    const driftOffsetX = amp * Math.sin(time * speed + phase);
 
     ctx.save();
-    const mainAlpha = c.alpha != null ? c.alpha : 1.0;
-    ctx.globalAlpha = mainAlpha;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    // Draw circles
-    for (const k of c.circles) {
-        ctx.strokeStyle = k.color || '#ffffff';
-        ctx.lineWidth = k.w || 2;
-        ctx.beginPath();
-        ctx.arc(c.cx + offsetX, c.cy, Math.max(0.5, k.r), 0, Math.PI * 2);
-        ctx.stroke();
-    }
-    
-    // Draw highlight
-    ctx.globalAlpha = (c.shadowAlpha != null ? c.shadowAlpha : 1.0) * mainAlpha;
+    ctx.globalAlpha = c.alpha != null ? c.alpha : 1.0;
+
+    // Set highlight properties.
     ctx.shadowBlur = c.blur || 0;
     ctx.shadowOffsetX = c.shadowX || 0;
     ctx.shadowOffsetY = c.shadowY || 0;
     ctx.shadowColor = c.shadowColor || '#555';
 
+    // Draw filled circles with animation offset.
     for (const k of c.circles) {
-        ctx.strokeStyle = 'rgba(0,0,0,0.01)';
-        ctx.lineWidth = k.w || 2;
+        ctx.fillStyle = k.color || '#ffffff';
         ctx.beginPath();
-        ctx.arc(c.cx + offsetX, c.cy, Math.max(0.5, k.r), 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.arc(c.cx + k.offsetX + driftOffsetX, c.cy + k.offsetY, Math.max(0.5, k.r), 0, Math.PI * 2);
+        ctx.fill();
     }
     ctx.restore();
 }
@@ -411,12 +424,18 @@ function drawTreeFromSegments(ctx, tree){
     const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
     const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
     let stroke;
+
     if (tree.randomColor) {
-        const colorIndex = Math.floor(rand() * tree.branchColors.length);
-        stroke = tree.branchColors[colorIndex];
+        if (tree.randomColorPerLevel && tree.levelColors) {
+            stroke = tree.levelColors[seg.level];
+        } else {
+            const colorIndex = Math.floor(rand() * tree.branchColors.length);
+            stroke = tree.branchColors[colorIndex];
+        }
     } else {
         stroke = tree.branchColors[seg.level] || '#fff';
     }
+
     const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
     ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
     const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
@@ -480,16 +499,21 @@ function drawFernInstance(ctx, f){
   }
 }
 
-function applyEraser(ctx, stroke){
-  ctx.save(); ctx.globalCompositeOperation = 'destination-out';
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = stroke.size;
-  ctx.beginPath();
-  ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-  for(let i=1; i<stroke.points.length; i++){
-    ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
-  }
-  ctx.stroke();
-  ctx.restore();
+function applyEraser(ctx, stroke) {
+    if (!stroke || !stroke.points || stroke.points.length === 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = stroke.size;
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+    ctx.beginPath();
+    ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+    ctx.stroke();
+    ctx.restore();
 }
 
 function drawAnimatedTree(ctx, tree, time) {
@@ -513,8 +537,12 @@ function drawAnimatedTree(ctx, tree, time) {
       
       let stroke;
       if (tree.randomColor) {
-          const colorIndex = Math.floor(rand() * tree.branchColors.length);
-          stroke = tree.branchColors[colorIndex];
+        if (tree.randomColorPerLevel && tree.levelColors) {
+            stroke = tree.levelColors[seg.level];
+        } else {
+            const colorIndex = Math.floor(rand() * tree.branchColors.length);
+            stroke = tree.branchColors[colorIndex];
+        }
       } else {
           stroke = tree.branchColors[seg.level] || '#fff';
       }
@@ -546,7 +574,22 @@ function drawMountainRange(ctx, mtn) {
     if (!mtn.points || mtn.points.length < 2) return;
     ctx.save();
     ctx.globalAlpha = mtn.alpha != null ? mtn.alpha : 1.0;
-    ctx.fillStyle = mtn.color;
+    
+    if (mtn.hasGradient && mtn.color2) {
+        let minY = ctx.canvas.height;
+        for (const point of mtn.points) {
+            if (point.y < minY) minY = point.y;
+        }
+        if (mtn.start.y < minY) minY = mtn.start.y;
+        if (mtn.end.y < minY) minY = mtn.end.y;
+        
+        const gradient = ctx.createLinearGradient(0, minY, 0, ctx.canvas.height);
+        gradient.addColorStop(0, mtn.color);
+        gradient.addColorStop(1, mtn.color2);
+        ctx.fillStyle = gradient;
+    } else {
+        ctx.fillStyle = mtn.color;
+    }
     
     ctx.beginPath();
     ctx.moveTo(mtn.start.x, ctx.canvas.height);

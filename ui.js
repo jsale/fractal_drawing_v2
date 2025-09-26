@@ -10,6 +10,7 @@ const helpDisplay = document.getElementById('helpDisplay');
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 const closeMenuBtn = document.getElementById('closeMenuBtn');
 
+const enableBranchSelectionEl = document.getElementById('enableBranchSelection');
 const levelsEl  = document.getElementById('levels');
 const levelsValueEl = document.getElementById('levelsValue');
 const baseEl    = document.getElementById('baseLen');
@@ -18,16 +19,21 @@ const lenScaleEl  = document.getElementById('lenScale');
 const lenScaleValueEl = document.getElementById('lenScaleValue');
 const angleEl   = document.getElementById('angle');
 const angleValueEl = document.getElementById('angleValue');
+const randomizeAnglePerTreeEl = document.getElementById('randomizeAnglePerTree');
 const lenRandEl = document.getElementById('lenRand');
 const lenRandValueEl = document.getElementById('lenRandValue');
 const angleRandEl = document.getElementById('angleRand');
 const angleRandValueEl = document.getElementById('angleRandValue');
 const uniformAngleRandEl = document.getElementById('uniformAngleRand');
+const unifyLenPerLevelEl = document.getElementById('unifyLenPerLevel');
+const unifyAnglePerLevelEl = document.getElementById('unifyAnglePerLevel');
 const baseWidthEl = document.getElementById('baseWidth');
 const baseWidthValueEl = document.getElementById('baseWidthValue');
 const widthScaleEl= document.getElementById('widthScale');
 const widthScaleValueEl = document.getElementById('widthScaleValue');
 const randomBranchColorEl = document.getElementById('randomBranchColor');
+const randomColorModeContainerEl = document.getElementById('randomColorModeContainer');
+const randomColorPerLevelEl = document.getElementById('randomColorPerLevel');
 
 const addTreeBlossomsEl = document.getElementById('addTreeBlossoms');
 const treeBlossomControlsEl = document.getElementById('treeBlossomControls');
@@ -43,6 +49,8 @@ const spaceFernsEl = document.getElementById('spaceFerns');
 
 const pathWidthEl = document.getElementById('pathWidth');
 const pathWidthValueEl = document.getElementById('pathWidthValue');
+const pathSegmentCycleContainerEl = document.getElementById('pathSegmentCycleContainer');
+const pathSegmentCycleEl = document.getElementById('pathSegmentCycle');
 const pathAirbrushEl = document.getElementById('pathAirbrush');
 const airbrushControlsEl = document.getElementById('airbrushControls');
 const airbrushSizeEl = document.getElementById('airbrushSize');
@@ -56,6 +64,9 @@ const mountainHeightValueEl = document.getElementById('mountainHeightValue');
 const mountainJaggednessEl = document.getElementById('mountainJaggedness');
 const mountainJaggednessValueEl = document.getElementById('mountainJaggednessValue');
 const mountainSmoothEl = document.getElementById('mountainSmooth');
+const mountainGradientEl = document.getElementById('mountainGradient');
+const mountainGradientControlsEl = document.getElementById('mountainGradientControls');
+const mountainColor2El = document.getElementById('mountainColor2');
 
 const celestialParamsEl = document.getElementById('celestialParams');
 const celestialSizeEl = document.getElementById('celestialSize');
@@ -123,19 +134,13 @@ const cloudMinDEl    = document.getElementById('cloudMinD');
 const cloudMinDValueEl = document.getElementById('cloudMinDValue');
 const cloudMaxDEl    = document.getElementById('cloudMaxD');
 const cloudMaxDValueEl = document.getElementById('cloudMaxDValue');
-const cloudMinWEl    = document.getElementById('cloudMinW');
-const cloudMinWValueEl = document.getElementById('cloudMinWValue');
-const cloudMaxWEl    = document.getElementById('cloudMaxW');
-const cloudMaxWValueEl = document.getElementById('cloudMaxWValue');
 const cloudBlurEl    = document.getElementById('cloudBlur');
 const cloudBlurValueEl = document.getElementById('cloudBlurValue');
-const cloudShadowEl  = document.getElementById('cloudShadowColor');
+const cloudShadowColorEl  = document.getElementById('cloudShadowColor');
 const cloudShadowXEl = document.getElementById('cloudShadowX');
 const cloudShadowXValueEl = document.getElementById('cloudShadowXValue');
 const cloudShadowYEl = document.getElementById('cloudShadowY');
 const cloudShadowYValueEl = document.getElementById('cloudShadowYValue');
-const cloudShadowAlphaEl = document.getElementById('cloudShadowAlpha');
-const cloudShadowAlphaValueEl = document.getElementById('cloudShadowAlphaValue');
 const animateCloudsEl = document.getElementById('animateClouds');
 const cloudAnimControlsEl = document.getElementById('cloudAnimControls');
 const cloudSpeedEl = document.getElementById('cloudSpeed');
@@ -150,8 +155,7 @@ const singleColorEl = document.getElementById('singleColor');
 const playbackBtn = document.getElementById('playbackBtn');
 const playbackSpeedEl = document.getElementById('playbackSpeed');
 const playbackSpeedValueEl = document.getElementById('playbackSpeedValue');
-const sessionWarningEl = document.getElementById('sessionWarning');
-let isPlaying = false;
+const sessionInfoDisplayEl = document.getElementById('sessionInfoDisplay');
 
 const otherScaleMinEl = document.getElementById('otherScaleMin');
 const otherScaleMinValueEl = document.getElementById('otherScaleMinValue');
@@ -212,8 +216,8 @@ const bindings = [
     ['flowerBlossomSize', 'flowerBlossomSizeValue'],
     ['vineLength', 'vineLengthValue'], ['vineNoise', 'vineNoiseValue'], ['vineStroke', 'vineStrokeValue'],
     ['cloudCount', 'cloudCountValue'], ['cloudMinD', 'cloudMinDValue'], ['cloudMaxD', 'cloudMaxDValue'],
-    ['cloudMinW', 'cloudMinWValue'], ['cloudMaxW', 'cloudMaxWValue'], ['cloudBlur', 'cloudBlurValue'],
-    ['cloudShadowX', 'cloudShadowXValue'], ['cloudShadowY', 'cloudShadowYValue'], ['cloudShadowAlpha', 'cloudShadowAlphaValue'],
+    ['cloudBlur', 'cloudBlurValue'],
+    ['cloudShadowX', 'cloudShadowXValue'], ['cloudShadowY', 'cloudShadowYValue'],
     ['cloudSpeed', 'cloudSpeedValue'], ['cloudDrift', 'cloudDriftValue'],
     ['otherScaleMin', 'otherScaleMinValue'], ['otherScaleMax', 'otherScaleMaxValue'],
     ['eraserSize', 'eraserSizeValue'],
@@ -268,6 +272,12 @@ if (addFlowerBlossomsEl) {
 if (pathAirbrushEl) {
     pathAirbrushEl.addEventListener('change', () => {
         if(airbrushControlsEl) airbrushControlsEl.style.display = pathAirbrushEl.checked ? 'block' : 'none';
+    });
+}
+
+if (mountainGradientEl) {
+    mountainGradientEl.addEventListener('change', () => {
+        if(mountainGradientControlsEl) mountainGradientControlsEl.style.display = mountainGradientEl.checked ? 'block' : 'none';
     });
 }
 
@@ -327,15 +337,12 @@ if (helpBtn) {
     }, true);
 }
 
-function checkSessionSize() {
-    if (!sessionWarningEl) return;
-    const sizeThreshold = 500;
-    if (scene.length > sizeThreshold) {
-        sessionWarningEl.textContent = `Warning: This session contains ${scene.length} objects and may be slow to save or reload on some devices.`;
-        sessionWarningEl.style.display = 'block';
-    } else {
-        sessionWarningEl.style.display = 'none';
-    }
+if (randomBranchColorEl) {
+    randomBranchColorEl.addEventListener('change', () => {
+        if(randomColorModeContainerEl) {
+            randomColorModeContainerEl.style.display = randomBranchColorEl.checked ? 'block' : 'none';
+        }
+    });
 }
 
 function ensureTreeDefaults(levels){
@@ -453,9 +460,12 @@ function applyPalettePreset(colors) {
 }
 
 function updateNonTreeColorUI(){
-  if (!nonTreeColorModeEl || !singleColorBoxEl) return;
-  const isSingleColor = nonTreeColorModeEl.value === 'single';
-  singleColorBoxEl.style.display = isSingleColor ? 'block' : 'none';
+    if (!nonTreeColorModeEl || !singleColorBoxEl) return;
+    const isCycleMode = nonTreeColorModeEl.value === 'cycle';
+    singleColorBoxEl.style.display = !isCycleMode ? 'block' : 'none';
+    if (pathSegmentCycleContainerEl) {
+        pathSegmentCycleContainerEl.style.display = isCycleMode ? 'block' : 'none';
+    }
 }
 if (nonTreeColorModeEl) nonTreeColorModeEl.addEventListener('change', updateNonTreeColorUI);
 
