@@ -41,6 +41,16 @@ const treeBlossomSizeEl = document.getElementById('treeBlossomSize');
 const treeBlossomSizeValueEl = document.getElementById('treeBlossomSizeValue');
 const treeBlossomColorEl = document.getElementById('treeBlossomColor');
 
+const addTreeShadowEl = document.getElementById('addTreeShadow');
+const treeShadowControlsEl = document.getElementById('treeShadowControls');
+const treeShadowColorEl = document.getElementById('treeShadowColor');
+const treeShadowBlurEl = document.getElementById('treeShadowBlur');
+const treeShadowBlurValueEl = document.getElementById('treeShadowBlurValue');
+const treeShadowXEl = document.getElementById('treeShadowX');
+const treeShadowXValueEl = document.getElementById('treeShadowXValue');
+const treeShadowYEl = document.getElementById('treeShadowY');
+const treeShadowYValueEl = document.getElementById('treeShadowYValue');
+
 const fernPointsEl = document.getElementById('fernPoints');
 const fernPointsValueEl = document.getElementById('fernPointsValue');
 const fernSizeEl   = document.getElementById('fernSize');
@@ -207,6 +217,7 @@ const bindings = [
     ['levels', 'levelsValue'], ['baseLen', 'baseLenValue'], ['lenScale', 'lenScaleValue'],
     ['angle', 'angleValue'], ['lenRand', 'lenRandValue'], ['angleRand', 'angleRandValue'],
     ['baseWidth', 'baseWidthValue'], ['widthScale', 'widthScaleValue'], ['treeBlossomSize', 'treeBlossomSizeValue'],
+    ['treeShadowBlur', 'treeShadowBlurValue'], ['treeShadowX', 'treeShadowXValue'], ['treeShadowY', 'treeShadowYValue'],
     ['fernPoints', 'fernPointsValue'], ['fernSize', 'fernSizeValue'],
     ['pathWidth', 'pathWidthValue'], ['airbrushSize', 'airbrushSizeValue'],
     ['mountainDetail', 'mountainDetailValue'], ['mountainHeight', 'mountainHeightValue'], ['mountainJaggedness', 'mountainJaggednessValue'],
@@ -262,6 +273,11 @@ updateModeUI();
 if (addTreeBlossomsEl) {
     addTreeBlossomsEl.addEventListener('change', () => {
         if(treeBlossomControlsEl) treeBlossomControlsEl.style.display = addTreeBlossomsEl.checked ? 'block' : 'none';
+    });
+}
+if (addTreeShadowEl) {
+    addTreeShadowEl.addEventListener('change', () => {
+        if(treeShadowControlsEl) treeShadowControlsEl.style.display = addTreeShadowEl.checked ? 'block' : 'none';
     });
 }
 if (addFlowerBlossomsEl) {

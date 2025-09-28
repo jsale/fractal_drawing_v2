@@ -1,5 +1,9 @@
 // JavaScript Document - fractals.js
 
+/* ===================== Off-screen canvas for effects ===================== */
+const offscreenCanvas = document.createElement('canvas');
+const offscreenCtx = offscreenCanvas.getContext('2d');
+
 /* ===================== Color & Noise Utilities ===================== */
 function hslToHex(h,s,l){
   s/=100; l/=100;
@@ -417,43 +421,86 @@ function drawVines(ctx, v){
   ctx.stroke();
 }
 
-function drawTreeFromSegments(ctx, tree){
-  const rand = mulberry32(tree.rngSeed);
-  ctx.lineCap='round'; ctx.lineJoin='round';
-  for(const seg of tree.segments){
-    const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
-    const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
-    let stroke;
+function _drawTreeToContext(targetCtx, tree) {
+    const rand = mulberry32(tree.rngSeed);
+    targetCtx.lineCap='round';
+    targetCtx.lineJoin='round';
+    for(const seg of tree.segments){
+        const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
+        const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
+        let stroke;
 
-    if (tree.randomColor) {
-        if (tree.randomColorPerLevel && tree.levelColors) {
-            stroke = tree.levelColors[seg.level];
+        if (tree.randomColor) {
+            if (tree.randomColorPerLevel && tree.levelColors) {
+                stroke = tree.levelColors[seg.level];
+            } else {
+                const colorIndex = Math.floor(rand() * tree.branchColors.length);
+                stroke = tree.branchColors[colorIndex];
+            }
         } else {
-            const colorIndex = Math.floor(rand() * tree.branchColors.length);
-            stroke = tree.branchColors[colorIndex];
+            stroke = tree.branchColors[seg.level] || '#fff';
         }
-    } else {
-        stroke = tree.branchColors[seg.level] || '#fff';
+
+        const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
+        targetCtx.lineWidth = width;
+        targetCtx.strokeStyle = stroke;
+        targetCtx.globalAlpha = la;
+
+        // Note: Selection highlight is drawn on the main context, not the off-screen one.
+        if (isAnimating() === false && (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex)) {
+            targetCtx.save();
+            targetCtx.shadowColor = '#fff';
+            targetCtx.shadowBlur = 6;
+            targetCtx.shadowOffsetX = 0;
+            targetCtx.shadowOffsetY = 0;
+            targetCtx.beginPath();
+            targetCtx.moveTo(seg.x1, seg.y1);
+            targetCtx.lineTo(seg.x2, seg.y2);
+            targetCtx.stroke();
+            targetCtx.restore();
+        } else {
+            targetCtx.beginPath();
+            targetCtx.moveTo(seg.x1, seg.y1);
+            targetCtx.lineTo(seg.x2, seg.y2);
+            targetCtx.stroke();
+        }
+
+        if (tree.hasBlossoms && seg.children.length === 0) {
+            targetCtx.fillStyle = tree.blossomColor || '#ffc0cb';
+            targetCtx.globalAlpha = la;
+            targetCtx.beginPath();
+            targetCtx.arc(seg.x2, seg.y2, tree.blossomSize || 3, 0, Math.PI * 2);
+            targetCtx.fill();
+        }
+    }
+}
+
+function drawTreeFromSegments(ctx, tree){
+    if (!tree.hasShadow) {
+        // If no shadow, draw directly to the main canvas as before.
+        _drawTreeToContext(ctx, tree);
+        return;
     }
 
-    const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
-    ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
-    const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
-    if(isHighlighted){
-      ctx.save(); ctx.shadowColor='#fff'; ctx.shadowBlur=6;
-      ctx.beginPath(); ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); ctx.stroke(); ctx.restore();
-    } else {
-      ctx.beginPath(); ctx.moveTo(seg.x1,seg.y1); ctx.lineTo(seg.x2,seg.y2); ctx.stroke();
-    }
+    // --- Draw with shadow using an off-screen canvas ---
+    offscreenCanvas.width = ctx.canvas.width;
+    offscreenCanvas.height = ctx.canvas.height;
+    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+
+    // 1. Draw the complete tree to the off-screen canvas.
+    _drawTreeToContext(offscreenCtx, tree);
+
+    // 2. Draw the shadow from the off-screen canvas to the main canvas.
+    ctx.save();
+    ctx.shadowColor = tree.shadowColor;
+    ctx.shadowBlur = tree.shadowBlur;
+    ctx.shadowOffsetX = tree.shadowX;
+    ctx.shadowOffsetY = tree.shadowY;
+    ctx.drawImage(offscreenCanvas, 0, 0);
+    ctx.restore();
     
-    if (tree.hasBlossoms && seg.children.length === 0) {
-        ctx.fillStyle = tree.blossomColor || '#ffc0cb';
-        ctx.globalAlpha = la;
-        ctx.beginPath();
-        ctx.arc(seg.x2, seg.y2, tree.blossomSize || 3, 0, Math.PI * 2);
-        ctx.fill();
-    }
-  }
+    // 3. Draw the crisp tree from the off-screen canvas on top of its shadow.
+    ctx.drawImage(offscreenCanvas, 0, 0);
 }
 
 function drawFernInstance(ctx, f){
@@ -517,57 +564,77 @@ function applyEraser(ctx, stroke) {
 }
 
 function drawAnimatedTree(ctx, tree, time) {
-    const amp   = windAmpValueEl ? (parseFloat(windAmpValueEl.value) * Math.PI/180) : 0;
-    const speed = windSpeedValueEl ? parseFloat(windSpeedValueEl.value) : 0.2;
-    const phase = (tree.rngSeed % 1000) / 1000 * Math.PI * 2;
-    const rand = mulberry32(tree.rngSeed);
+    // Internal drawing function that renders the animated tree to a given context
+    const _drawAnimatedTreeToContext = (targetCtx) => {
+        const amp   = windAmpValueEl ? (parseFloat(windAmpValueEl.value) * Math.PI/180) : 0;
+        const speed = windSpeedValueEl ? parseFloat(windSpeedValueEl.value) : 0.2;
+        const phase = (tree.rngSeed % 1000) / 1000 * Math.PI * 2;
+        const rand = mulberry32(tree.rngSeed);
 
-    const swayForLevel = new Map();
-    for (let lvl=0; lvl<tree.levels; lvl++){
-        const levelFactor = 1 / (1 + lvl*0.6);
-        swayForLevel.set(lvl, amp * levelFactor * Math.sin((time*speed*2*Math.PI) + phase));
-    }
-    const roots = tree.segments.filter(s=>s.parent===-1);
-
-    function drawRec(seg, sx, sy){
-      const ang = seg.baseAng + (swayForLevel.get(seg.level) || 0);
-      const ex = sx + seg.len*Math.cos(ang), ey = sy - seg.len*Math.sin(ang);
-      const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
-      const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
-      
-      let stroke;
-      if (tree.randomColor) {
-        if (tree.randomColorPerLevel && tree.levelColors) {
-            stroke = tree.levelColors[seg.level];
-        } else {
-            const colorIndex = Math.floor(rand() * tree.branchColors.length);
-            stroke = tree.branchColors[colorIndex];
+        const swayForLevel = new Map();
+        for (let lvl=0; lvl<tree.levels; lvl++){
+            const levelFactor = 1 / (1 + lvl*0.6);
+            swayForLevel.set(lvl, amp * levelFactor * Math.sin((time*speed*2*Math.PI) + phase));
         }
-      } else {
-          stroke = tree.branchColors[seg.level] || '#fff';
-      }
-      
-      const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
-      ctx.lineWidth = width; ctx.strokeStyle = stroke; ctx.globalAlpha = la;
-      const isHighlighted = (trees.indexOf(tree) === selectedTreeIndex) && (seg.level === selectedLevelIndex);
-      if (isHighlighted){
-        ctx.save(); ctx.shadowColor='#fff'; ctx.shadowBlur=6;
-        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke(); ctx.restore();
-      } else {
-        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
-      }
-      
-      if (tree.hasBlossoms && seg.children.length === 0) {
-        ctx.fillStyle = tree.blossomColor || '#ffc0cb';
-        ctx.globalAlpha = la;
-        ctx.beginPath();
-        ctx.arc(ex, ey, tree.blossomSize || 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
+        const roots = tree.segments.filter(s=>s.parent===-1);
 
-      for (const ci of seg.children){ drawRec(tree.segments[ci], ex, ey); }
+        function drawRec(seg, sx, sy){
+          const ang = seg.baseAng + (swayForLevel.get(seg.level) || 0);
+          const ex = sx + seg.len*Math.cos(ang), ey = sy - seg.len*Math.sin(ang);
+          const widthScale = tree.widthScale != null ? tree.widthScale : 0.68;
+          const width = Math.max(0.1, (tree.baseWidth || 12) * Math.pow(widthScale, seg.level));
+          
+          let stroke;
+          if (tree.randomColor) {
+            if (tree.randomColorPerLevel && tree.levelColors) {
+                stroke = tree.levelColors[seg.level];
+            } else {
+                const colorIndex = Math.floor(rand() * tree.branchColors.length);
+                stroke = tree.branchColors[colorIndex];
+            }
+          } else {
+              stroke = tree.branchColors[seg.level] || '#fff';
+          }
+          
+          const la = tree.levelAlphas[seg.level] != null ? tree.levelAlphas[seg.level] : 1;
+          targetCtx.lineWidth = width; targetCtx.strokeStyle = stroke; targetCtx.globalAlpha = la;
+          
+          targetCtx.beginPath(); targetCtx.moveTo(sx,sy); targetCtx.lineTo(ex,ey); targetCtx.stroke();
+          
+          if (tree.hasBlossoms && seg.children.length === 0) {
+            targetCtx.fillStyle = tree.blossomColor || '#ffc0cb';
+            targetCtx.globalAlpha = la;
+            targetCtx.beginPath();
+            targetCtx.arc(ex, ey, tree.blossomSize || 3, 0, Math.PI * 2);
+            targetCtx.fill();
+          }
+
+          for (const ci of seg.children){ drawRec(tree.segments[ci], ex, ey); }
+        }
+        for (const root of roots){ drawRec(root, tree.x, tree.y); }
+    };
+
+    if (!tree.hasShadow) {
+        _drawAnimatedTreeToContext(ctx);
+        return;
     }
-    for (const root of roots){ drawRec(root, tree.x, tree.y); }
+
+    // --- Draw with shadow using an off-screen canvas ---
+    offscreenCanvas.width = ctx.canvas.width;
+    offscreenCanvas.height = ctx.canvas.height;
+    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+
+    _drawAnimatedTreeToContext(offscreenCtx);
+
+    ctx.save();
+    ctx.shadowColor = tree.shadowColor;
+    ctx.shadowBlur = tree.shadowBlur;
+    ctx.shadowOffsetX = tree.shadowX;
+    ctx.shadowOffsetY = tree.shadowY;
+    ctx.drawImage(offscreenCanvas, 0, 0);
+    ctx.restore();
+    
+    ctx.drawImage(offscreenCanvas, 0, 0);
 }
 
 function drawMountainRange(ctx, mtn) {

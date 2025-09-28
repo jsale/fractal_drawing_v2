@@ -97,13 +97,27 @@
     
             <hr style="opacity:.1; margin: 10px 0;">
             <label style="display: block;">
-                <input type="checkbox" id="addTreeBlossoms" title="Enable or disable blossoms at the tip of each branch."> Add Blossoms/Leaves
+                <input type="checkbox" id="addTreeBlossoms"> Add Blossoms/Leaves
             </label>
             <div id="treeBlossomControls" style="display:none;">
                 <div class="param-row"><label for="treeBlossomSize">Blossom Size</label><input id="treeBlossomSizeValue" type="number" min="1" max="15" value="3"></div>
                 <input id="treeBlossomSize" type="range" min="1" max="15" value="3" title="The radius of the blossom circle in pixels.">
                 <label class="row" for="treeBlossomColor">Blossom Color</label>
                 <input id="treeBlossomColor" type="color" value="#ffc0cb">
+            </div>
+            <hr style="opacity:.1; margin: 10px 0;">
+            <label style="display: block;">
+                <input type="checkbox" id="addTreeShadow"> Add Shadow / Highlight
+            </label>
+            <div id="treeShadowControls" style="display:none;">
+                <label class="row" for="treeShadowColor">Shadow Color</label>
+                <input id="treeShadowColor" type="color" value="#FFFFFF">
+                <div class="param-row"><label for="treeShadowBlur">Shadow Blur</label><input id="treeShadowBlurValue" type="number" min="0" max="50" value="5"></div>
+                <input id="treeShadowBlur" type="range" min="0" max="50" value="5">
+                <div class="param-row"><label for="treeShadowX">Shadow X Offset</label><input id="treeShadowXValue" type="number" min="-50" max="50" value="5"></div>
+                <input id="treeShadowX" type="range" min="-50" max="50" value="5">
+                <div class="param-row"><label for="treeShadowY">Shadow Y Offset</label><input id="treeShadowYValue" type="number" min="-50" max="50" value="5"></div>
+                <input id="treeShadowY" type="range" min="-50" max="50" value="5">
             </div>
           </div>
     

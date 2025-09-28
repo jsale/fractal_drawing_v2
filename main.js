@@ -307,7 +307,12 @@ function createTreeFromUI(x,y){
     segments: [],
     hasBlossoms: addTreeBlossomsEl.checked,
     blossomSize: parseFloat(treeBlossomSizeValueEl.value),
-    blossomColor: treeBlossomColorEl.value
+    blossomColor: treeBlossomColorEl.value,
+    hasShadow: addTreeShadowEl.checked,
+    shadowColor: treeShadowColorEl.value,
+    shadowBlur: parseFloat(treeShadowBlurEl.value),
+    shadowX: parseFloat(treeShadowXEl.value),
+    shadowY: parseFloat(treeShadowYEl.value)
   };
 
   if (t.randomColor && t.randomColorPerLevel) {
