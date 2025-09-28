@@ -2,6 +2,9 @@
 Fractal Forest Drawing App is an interactive, web-based drawing tool that lets you create beautiful, complex scenes using fractal algorithms and other generative techniques. From recursive trees and Barnsley ferns to Koch snowflakes and Perlin noise vines, you can design your own digital ecosystem right in your browser.
 
 -----
+## Tutorials Link
+- https://iluvdata.org/drawgem/tutorials/
+-----
 ## Live Demo Link
 - https://jsale.github.io/fractal_drawing_v2/
  ![alt text](https://www.iluvdata.org/drawgem/images/Screenshot1sm.png)
@@ -22,7 +25,7 @@ Fractal Forest Drawing App is an interactive, web-based drawing tool that lets y
 -----
 
 ## 🚀 How to Use
-
+### V
 1.  **Select a Mode**: Choose a drawing tool from the **Shape** tab's "Mode" dropdown.
 2.  **Adjust Parameters**: Use the sliders in the **Shape** tab to control how your object will look.
 3.  **Draw on the Canvas**: Click once to stamp an object, or click and drag to draw continuously.
