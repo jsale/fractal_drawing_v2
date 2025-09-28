@@ -327,11 +327,22 @@ function createTreeFromUI(x,y){
   buildTreeSegments(t);
   return t;
 }
+
 function createSnowflakeFromUI(cx, cy){
-  const s = { cx, cy, size: Math.min(treeCanvas.width, treeCanvas.height) * parseFloat(snowSizeValueEl.value), iter: parseInt(snowIterValueEl.value, 10),
-    stroke: parseFloat(snowStrokeValueEl.value), segments: [], alpha: getNewObjectAlpha() };
-  buildKochSnowflake(s); return s;
+  const scale = getNonTreeScale();
+  const s = {
+    cx,
+    cy,
+    size: Math.min(treeCanvas.width, treeCanvas.height) * parseFloat(snowSizeValueEl.value) * scale,
+    iter: parseInt(snowIterValueEl.value, 10),
+    stroke: parseFloat(snowStrokeValueEl.value),
+    segments: [],
+    alpha: getNewObjectAlpha()
+  };
+  buildKochSnowflake(s);
+  return s;
 }
+
 function createFlowerFromUI(cx, cy){
   const scale = getNonTreeScale();
   const fl = { 
@@ -609,7 +620,10 @@ function spawnAt(p){
     ferns.push(f);
     newOp = {type: 'fern', data: f};
   } else if(mode==='snowflake'){
-    const s = createSnowflakeFromUI(p.x, p.y); s.rngSeed = nextStampSeed(); s.size *= getNonTreeScale(); s.color = pickNonTreeColor(s.rngSeed); snowflakes.push(s);
+    const s = createSnowflakeFromUI(p.x, p.y);
+    s.rngSeed = nextStampSeed();
+    s.color = pickNonTreeColor(s.rngSeed);
+    snowflakes.push(s);
     newOp = {type: 'snowflake', data: s};
   } else if(mode==='flower'){
     const fl = createFlowerFromUI(p.x, p.y); 
