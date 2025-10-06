@@ -2,6 +2,9 @@
 Fractal Forest Drawing App is an interactive, web-based drawing tool that lets you create beautiful, complex scenes using fractal algorithms and other generative techniques. From recursive trees and Barnsley ferns to Koch snowflakes and Perlin noise vines, you can design your own digital ecosystem right in your browser.
 
 -----
+## Tutorials Link
+- https://iluvdata.org/drawgem/tutorials/
+-----
 ## Live Demo Link
 - https://jsale.github.io/fractal_drawing_v2/
  ![alt text](https://www.iluvdata.org/drawgem/images/Screenshot1sm.png)
@@ -22,7 +25,6 @@ Fractal Forest Drawing App is an interactive, web-based drawing tool that lets y
 -----
 
 ## 🚀 How to Use
-
 1.  **Select a Mode**: Choose a drawing tool from the **Shape** tab's "Mode" dropdown.
 2.  **Adjust Parameters**: Use the sliders in the **Shape** tab to control how your object will look.
 3.  **Draw on the Canvas**: Click once to stamp an object, or click and drag to draw continuously.
@@ -30,6 +32,12 @@ Fractal Forest Drawing App is an interactive, web-based drawing tool that lets y
 5.  **Save Your Work**:
       * Use the buttons in the **History** tab to **Export Session** if you want to save your progress to work on later.
       * Use the buttons in the **Shape** tab to **Save PNG** or **Export SVG** when your masterpiece is complete.
+
+-----
+
+## Precautions
+1.  **Export Session Crashing**: It is easy to generate huge files if you draw many trees with a high branch level, and often these files are simply too large for the browser to handle and simply crashes. We don't have a fix for that yet, but we're working on it.
+2.  **Order of Object Creation Impacts Session Size**: Each time an object is drawn, a snapshot of the scene is saved to the History list for playback or export. If you draw many trees with many branches first, then these will be saved with every object drawn after it. Therefore, try to draw simpler objects in the scene first, such as the sun/moon, clouds, mountains, ferns, and paths. The other objects can consume considerable memory.
 
 -----
 
