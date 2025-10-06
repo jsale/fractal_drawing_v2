@@ -17,3 +17,5 @@ bin-release/
 # should NOT be excluded as they contain compiler settings and other important
 # information for Eclipse / Flash Builder.
 _notes/dwsync.xml
+videos/fractal_drawing2.mp4
+videos/fractal_drawing_intro.mp4
