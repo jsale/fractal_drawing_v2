@@ -166,6 +166,7 @@ const playbackBtn = document.getElementById('playbackBtn');
 const playbackSpeedEl = document.getElementById('playbackSpeed');
 const playbackSpeedValueEl = document.getElementById('playbackSpeedValue');
 const sessionInfoDisplayEl = document.getElementById('sessionInfoDisplay');
+const saveSceneOnlyEl = document.getElementById('saveSceneOnly');
 
 const otherScaleMinEl = document.getElementById('otherScaleMin');
 const otherScaleMinValueEl = document.getElementById('otherScaleMinValue');

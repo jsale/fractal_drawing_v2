@@ -742,31 +742,29 @@ function playHistory() {
 
 function exportSession() {
     try {
-        if (typeof gtag === 'function') gtag('event', 'save_session');
+        if (typeof gtag === 'function') gtag('event', 'save_session', { 'save_history': !saveSceneOnlyEl.checked });
         if (typeof pako === 'undefined') {
             alert('Compression library (pako) is not available. Please check your internet connection.');
             return;
         }
 
-        const deflate = new pako.Deflate({ gzip: true });
-
-        deflate.push('{\n  "history": [\n');
-        history.forEach((state, index) => {
-            deflate.push(JSON.stringify(state, null, 2));
-            if (index < history.length - 1) {
-                deflate.push(',\n');
-            }
-        });
-        deflate.push('\n  ],\n  "histIndex": ');
-        deflate.push(histIndex.toString());
-        deflate.push('\n}');
-
-        deflate.push([], true); // Finalize the stream
-
-        if (deflate.err) {
-            throw new Error(deflate.msg);
+        let dataToSave;
+        if (saveSceneOnlyEl.checked) {
+            // Save only the current state
+            dataToSave = {
+                history: [snapshot()], // Create a new history with only the current snapshot
+                histIndex: 0
+            };
+        } else {
+            // Save the entire history
+            dataToSave = {
+                history: history,
+                histIndex: histIndex
+            };
         }
-        const compressed = deflate.result;
+
+        const jsonString = JSON.stringify(dataToSave);
+        const compressed = pako.gzip(jsonString);
 
         const blob = new Blob([compressed], { type: "application/gzip" });
         const url = URL.createObjectURL(blob);
@@ -807,6 +805,9 @@ function loadSession(event) {
                 history.length = 0;
                 Array.prototype.push.apply(history, sessionData.history);
                 histIndex = sessionData.histIndex;
+                if (histIndex >= history.length) {
+                    histIndex = history.length - 1;
+                }
                 restoreFrom(history[histIndex]);
             } else {
                 alert('Invalid session file format.');
@@ -838,6 +839,7 @@ function buildSVG(){
       if (glowAmount > 0) {
           celestials_glow_defs += `<filter id="glow-${i}"><feGaussianBlur stdDeviation="${glowAmount}" /></filter>`;
       }
+
   });
   if (celestials_glow_defs) defs.push(celestials_glow_defs);
   
